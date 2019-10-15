@@ -1,6 +1,6 @@
 
 import { NativeModules } from 'react-native';
 
-const { RNReactNativeSmb } = NativeModules;
+const { RNSmb } = NativeModules;
 
-export default RNReactNativeSmb;
+export default RNSmb;
