@@ -5,6 +5,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+import android.widget.Toast;
 
 public class RNSmbModule extends ReactContextBaseJavaModule {
 
@@ -23,8 +24,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void show(String text) {
-    Context context = getReactApplicationContext();
-    Toast.makeText(context, text, Toast.LENGTH_LONG).show();
+    //ReactApplicationContext context = getReactApplicationContext();
+    Toast.makeText(getReactApplicationContext(), text, Toast.LENGTH_LONG).show();
   }
 
 }
