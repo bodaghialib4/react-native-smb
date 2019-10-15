@@ -45,3 +45,4 @@ buck-out/
 *.keystore
       
 /yarn.lock
+/package-lock.json
