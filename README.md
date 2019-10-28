@@ -1,7 +1,7 @@
 
 # react-native-smb
 
-# _**this is under deployment**_
+# _**this is under deployment and not completed yet**_
 
 ## Getting started
 
@@ -106,6 +106,28 @@ eventEmitter.addListener('SMBList', (event) => {
 });
 
 RNSmb.list("target path")
+```
+
+to download a file from smb server and save it in Download folder of Android device
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBDownloadResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBDownloadResult success');
+  } else {
+    console.log('SMBDownloadResult error');
+  }
+});
+
+eventEmitter.addListener('SMBDownloadProgress', (data) => {
+  console.log('SMBDownloadProgress data:' + JSON.stringify(data));
+});
+RNSmb.download(
+    'file path in smb server',
+    'file name in smb server',
+);
+
 ```
 
 
