@@ -46,10 +46,56 @@
 
 
 ## Usage
+
+import react-native-smb where want to use, 
 ```javascript
-import RNReactNativeSmb from 'react-native-smb';
+import RNSmb from 'react-native-smb';
+```
+
+then init smb server connection properties
+```javascript
+let options = {
+  workGroup: 'WORKGROUP',
+  ip: '192.168.1.108',//smb server ip
+  username: 'aba',
+  password: '121',
+  sharedFolder: 'ali',
+};
+
+RNSmb.init(options,
+  (url) => {
+    //success callback 
+    console.log('success. url: ' + url);
+  }
+  ,
+  (errorMessage) => {
+    //error callback
+    console.log('errorMessage: ' + errorMessage);
+  },
+);
+```
+
+
+test server connectivity
+```javascript
+
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBTestConnection', (event) => {
+  if (event.success) {
+    console.log('TestConnection success message: ' + event.message);
+  } else {
+    console.log('TestConnection error message: ' + event.message);
+  }
+});
+
+RNSmb.testConnection();
+
+```
+
+```javascript
+import RNSmb from 'react-native-smb';
 
 // TODO: What to do with the module?
-RNReactNativeSmb;
+RNSmb;
 ```
 
