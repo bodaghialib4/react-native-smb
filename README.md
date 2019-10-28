@@ -92,6 +92,23 @@ RNSmb.testConnection();
 
 ```
 
+list files and folders in given path of smb server
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+   
+eventEmitter.addListener('SMBList', (event) => {
+  if (event.success) {
+    console.log('TestConnection success message: ' + event.message);
+    console.log('event: ' + JSON.stringify(event));
+  } else {
+    console.log('TestConnection error message: ' + event.message);
+  }
+});
+
+RNSmb.list("target path")
+```
+
+
 ```javascript
 import RNSmb from 'react-native-smb';
 
