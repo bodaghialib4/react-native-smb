@@ -12,6 +12,11 @@ import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import android.Manifest;
+import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
 import android.text.TextUtils;
 
@@ -19,8 +24,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 
 import javax.annotation.Nullable;
 
@@ -30,10 +43,20 @@ import jcifs.smb.SmbFileOutputStream;
 
 public class RNSmbModule extends ReactContextBaseJavaModule {
 
+
+  private static final int REQUEST_EXTERNAL_STORAGE = 1;
+  private static String[] PERMISSIONS_STORAGE = {
+          Manifest.permission.READ_EXTERNAL_STORAGE,
+          Manifest.permission.WRITE_EXTERNAL_STORAGE
+  };
+
   private final ReactApplicationContext reactContext;
 
   private NtlmPasswordAuthentication authentication;
   private String serverURL = "smb://server_ip:server_port/shared_folder";
+
+  private static LinkedBlockingQueue<Runnable> taskQueue = new LinkedBlockingQueue<>();
+  private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, taskQueue);
 
 
   public RNSmbModule(ReactApplicationContext reactContext) {
@@ -48,8 +71,30 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
 
   /**
-   * private functions
+   * **************** private functions ******************
    */
+
+  /**
+   * Checks if the app has permission to write to device storage
+   * <p>
+   * If the app does not has permission then the user will be prompted to grant permissions
+   *
+   * @param activity
+   */
+  public static void verifyStoragePermissions(Activity activity) {
+    // Check if we have write permission
+    int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+    if (permission != PackageManager.PERMISSION_GRANTED) {
+      // We don't have permission so prompt the user
+      ActivityCompat.requestPermissions(
+              activity,
+              PERMISSIONS_STORAGE,
+              REQUEST_EXTERNAL_STORAGE
+      );
+    }
+  }
+
 
   //for event
   private void sendEvent(ReactContext reactContext,
@@ -175,11 +220,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             currentFile.putString("name", file.getName());
 
             //boolean
-            currentFile.putBoolean("isDirectory",file.isDirectory());
-            currentFile.putBoolean("isFile",file.isFile());
-            currentFile.putBoolean("canRead",file.canRead());
-            currentFile.putBoolean("canWrite",file.canWrite());
-            currentFile.putBoolean("isHidden",file.isHidden());
+            currentFile.putBoolean("isDirectory", file.isDirectory());
+            currentFile.putBoolean("isFile", file.isFile());
+            currentFile.putBoolean("canRead", file.canRead());
+            currentFile.putBoolean("canWrite", file.canWrite());
+            currentFile.putBoolean("isHidden", file.isHidden());
 
             //long
             currentFile.putString("createTime", String.valueOf(file.createTime()));
@@ -197,7 +242,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             //currentFile.putMap("getContent",file.getContent());
 
             //int
-            currentFile.putInt("getType",file.getType());
+            currentFile.putInt("getType", file.getType());
 
             list.pushMap(currentFile);
 
@@ -227,6 +272,87 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
       params.putString("message", "exception error: " + e.getMessage());
     }
     sendEvent(reactContext, "SMBList", params);
+  }
+
+  @ReactMethod
+  public void download(
+          @Nullable final String path,
+          final String fileName
+          ) {
+    downloadThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+
+        WritableMap statusParams = Arguments.createMap();
+        try {
+          //verifyStoragePermissions(getCurrentActivity());
+          String destinationPath = "/";
+          if (path != null && !TextUtils.isEmpty(path)) {
+            destinationPath = "/" + path + destinationPath;
+          }
+          if (fileName != null && !TextUtils.isEmpty(fileName)) {
+            destinationPath = destinationPath + fileName;
+          }
+          SmbFile sFile;
+          if (authentication != null) {
+            sFile = new SmbFile(serverURL + destinationPath, authentication);
+          } else {
+            sFile = new SmbFile(serverURL + destinationPath);
+          }
+
+
+          File destFile = new File("");
+//      if (TextUtils.isEmpty(fileName)) {
+//        if (sFile.isDirectory()) {
+//          destFile = getFolder(sFile);
+//        }
+          if (sFile.isDirectory()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorMessage", " [destinationPath] is a directory!!");
+          } else if (!sFile.exists()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorMessage", " [destinationPath] is not exist directory!!");
+          } else if (!sFile.canRead()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorMessage", " no permission  to read [destinationPath]!!");
+          } else {
+            BufferedInputStream inBuf = new BufferedInputStream(sFile.getInputStream());
+            String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+            destFile = new File(basePath + File.separator + sFile.getName());
+            OutputStream out = new FileOutputStream(destFile);
+
+            // Copy the bits from Instream to Outstream
+            byte[] buf = new byte[1024];
+            int len;
+            long totalSize = sFile.length();
+            long downloadedSize = 0;
+
+            while ((len = inBuf.read(buf)) > 0) {
+              out.write(buf, 0, len);
+              downloadedSize += len;
+              WritableMap params = Arguments.createMap();
+              params.putString("fileName", sFile.getName() + "");
+              params.putString("totalSize", totalSize + "");
+              params.putString("downloadedSize", downloadedSize + "");
+              sendEvent(reactContext, "SMBDownloadProgress", params);
+
+
+            }
+            inBuf.close();
+            out.close();
+            statusParams.putBoolean("success", true);
+            statusParams.putString("errorMessage", "");
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorMessage", "exception error: " + e.getMessage());
+        }
+
+        sendEvent(reactContext, "SMBDownloadResult", statusParams);
+      }
+    });
   }
 
   @ReactMethod
