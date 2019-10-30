@@ -27,6 +27,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -59,6 +60,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   private static LinkedBlockingQueue<Runnable> downloadTaskQueue = new LinkedBlockingQueue<>();
   private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, downloadTaskQueue);
+  private static LinkedBlockingQueue<Runnable> uploadTaskQueue = new LinkedBlockingQueue<>();
+  private static ThreadPoolExecutor uploadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, uploadTaskQueue);
+
 
   public RNSmbModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -387,6 +391,100 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           }
 
           sendEvent(reactContext, "SMBDownloadResult", statusParams);
+        }
+      });
+    }
+  }
+
+  @ReactMethod
+  public void upload(
+          @Nullable final String destinationPath,
+          @Nullable final String sourcePath,
+          final String sourceFileName
+          ) {
+    if(checkReadExternalStoragePermissions()) {
+      uploadThreadPool.execute(new Runnable() {
+        @Override
+        public void run() {
+
+          WritableMap statusParams = Arguments.createMap();
+          statusParams.putString("fileName", sourceFileName + "");
+          try {
+            String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+            String sourcePathWithSeparator = "";
+            if (sourcePath != null && !TextUtils.isEmpty(sourcePath)) {
+              sourcePathWithSeparator = sourcePath + File.separator;
+            }
+            File sourceFile = new File(basePath + File.separator + sourcePathWithSeparator + sourceFileName);
+            SmbFile sFile = null;
+            if (sourceFile.isDirectory()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " [sourcePath] is a directory!!");
+
+            } else if (!sourceFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " [sourcePath] is not exist!!");
+            } else if (!sourceFile.canRead()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " no permission  to read [sourcePath]!!");
+            } else {
+              SmbFile sFilePath;
+              String destinationPathWithSeparator = "/";
+              if (destinationPath != null && !TextUtils.isEmpty(destinationPath)) {
+                destinationPathWithSeparator += "/" + destinationPath ;
+              }
+              if (sourceFileName != null && !TextUtils.isEmpty(sourceFileName)) {
+                destinationPathWithSeparator += "/" + sourceFileName;
+              }
+
+              if (authentication != null) {
+                sFile = new SmbFile(serverURL + destinationPathWithSeparator, authentication);
+                sFilePath = new SmbFile(sFile.getParent(), authentication);
+
+              } else {
+                sFile = new SmbFile(serverURL + destinationPathWithSeparator);
+                sFilePath = new SmbFile(sFile.getParent());
+
+              }
+
+              if (!sFilePath.exists()) sFilePath.mkdirs();
+
+              BufferedInputStream inBuf = new BufferedInputStream(new FileInputStream(sourceFile));
+              final SmbFileOutputStream smbFileOutputStream = new SmbFileOutputStream(sFile);
+              //final byte[] buf = new byte[16 * 1024 * 1024];
+              final byte[] buf = new byte[100 * 1024];
+              int len;
+              long totalSize = sourceFile.length();
+              long uploadedSize = 0;
+              while ((len = inBuf.read(buf)) > 0) {
+                smbFileOutputStream.write(buf, 0, len);
+                //todo: why write twice? I comment second write!!!!!
+                //smbFileOutputStream.write(buf, 0, len);
+                uploadedSize += len;
+                WritableMap params = Arguments.createMap();
+                params.putString("fileName", sourceFile.getName() + "");
+                params.putString("totalSize", totalSize + "");
+                params.putString("uploadedSize", uploadedSize + "");
+                sendEvent(reactContext, "SMBUploadProgress", params);
+              }
+              inBuf.close();
+              smbFileOutputStream.close();
+              if(sFile != null && sFile.exists()){
+                statusParams.putBoolean("success", true);
+                statusParams.putString("message", "successfully upload["+sFile.getPath()+"]");
+              }else {
+                statusParams.putBoolean("success", false);
+                statusParams.putString("message", "file not exist in server after upload["+sFile.getPath()+"]!!!!");
+              }
+
+            }
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            statusParams.putBoolean("success", false);
+            statusParams.putString("message", "upload exception error: " + e.getMessage());
+          }
+          sendEvent(reactContext, "SMBUploadResult", statusParams);
         }
       });
     }
