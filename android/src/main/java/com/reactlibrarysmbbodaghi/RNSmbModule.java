@@ -17,6 +17,7 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.widget.Toast;
 import android.text.TextUtils;
 
@@ -44,6 +45,7 @@ import jcifs.smb.SmbFileOutputStream;
 public class RNSmbModule extends ReactContextBaseJavaModule {
 
 
+  public static final int PERMISSIONS_REQUEST_CODE = 0;
   private static final int REQUEST_EXTERNAL_STORAGE = 1;
   private static String[] PERMISSIONS_STORAGE = {
           Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -73,6 +75,38 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   /**
    * **************** private functions ******************
    */
+
+  private boolean checkReadExternalStoragePermissions() {
+    String permission = Manifest.permission.READ_EXTERNAL_STORAGE;
+
+    if (ContextCompat.checkSelfPermission(getCurrentActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
+      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
+        Toast.makeText(getCurrentActivity(), "Allow external storage reading", Toast.LENGTH_SHORT).show();
+        return false;
+      } else {
+        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+        return true;
+      }
+    }
+    return true;
+  }
+
+  private boolean checkWriteExternalStoragePermissions() {
+    String permission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+
+    if (ContextCompat.checkSelfPermission(getCurrentActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
+      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
+        Toast.makeText(getCurrentActivity(), "Allow external storage Writing", Toast.LENGTH_SHORT).show();
+        return false;
+      } else {
+        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+        return true;
+      }
+    }
+    return true;
+  }
+
+
 
   /**
    * Checks if the app has permission to write to device storage
