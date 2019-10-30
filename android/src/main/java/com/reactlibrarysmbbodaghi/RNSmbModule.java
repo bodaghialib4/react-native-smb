@@ -337,25 +337,25 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             }
 
 
-          File destFile = new File("");
+            File destFile = new File("");
 //      if (TextUtils.isEmpty(fileName)) {
 //        if (sFile.isDirectory()) {
 //          destFile = getFolder(sFile);
 //        }
-          if (sFile.isDirectory()) {
-            statusParams.putBoolean("success", false);
-            statusParams.putString("errorMessage", " [destinationPath] is a directory!!");
-          } else if (!sFile.exists()) {
-            statusParams.putBoolean("success", false);
-            statusParams.putString("errorMessage", " [destinationPath] is not exist directory!!");
-          } else if (!sFile.canRead()) {
-            statusParams.putBoolean("success", false);
-            statusParams.putString("errorMessage", " no permission  to read [destinationPath]!!");
-          } else {
-            BufferedInputStream inBuf = new BufferedInputStream(sFile.getInputStream());
-            String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-            destFile = new File(basePath + File.separator + sFile.getName());
-            OutputStream out = new FileOutputStream(destFile);
+            if (sFile.isDirectory()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " [destinationPath] is a directory!!");
+            } else if (!sFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " [destinationPath] is not exist directory!!");
+            } else if (!sFile.canRead()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " no permission  to read [destinationPath]!!");
+            } else {
+              BufferedInputStream inBuf = new BufferedInputStream(sFile.getInputStream());
+              String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+              destFile = new File(basePath + File.separator + sFile.getName());
+              OutputStream out = new FileOutputStream(destFile);
 
             // Copy the bits from Instream to Outstream
             byte[] buf = new byte[1024];
@@ -363,28 +363,28 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             long totalSize = sFile.length();
             long downloadedSize = 0;
 
-            while ((len = inBuf.read(buf)) > 0) {
-              out.write(buf, 0, len);
-              downloadedSize += len;
-              WritableMap params = Arguments.createMap();
-              params.putString("fileName", sFile.getName() + "");
-              params.putString("totalSize", totalSize + "");
-              params.putString("downloadedSize", downloadedSize + "");
-              sendEvent(reactContext, "SMBDownloadProgress", params);
+              while ((len = inBuf.read(buf)) > 0) {
+                out.write(buf, 0, len);
+                downloadedSize += len;
+                WritableMap params = Arguments.createMap();
+                params.putString("fileName", sFile.getName() + "");
+                params.putString("totalSize", totalSize + "");
+                params.putString("downloadedSize", downloadedSize + "");
+                sendEvent(reactContext, "SMBDownloadProgress", params);
 
 
+              }
+              inBuf.close();
+              out.close();
+              statusParams.putBoolean("success", true);
+              statusParams.putString("message", "");
             }
-            inBuf.close();
-            out.close();
-            statusParams.putBoolean("success", true);
-            statusParams.putString("errorMessage", "");
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            statusParams.putBoolean("success", false);
+            statusParams.putString("message", "download exception error: " + e.getMessage());
           }
-        } catch (Exception e) {
-          // Output the stack trace.
-          e.printStackTrace();
-          statusParams.putBoolean("success", false);
-          statusParams.putString("errorMessage", "exception error: " + e.getMessage());
-        }
 
           sendEvent(reactContext, "SMBDownloadResult", statusParams);
         }
