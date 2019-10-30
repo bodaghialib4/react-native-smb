@@ -357,11 +357,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               destFile = new File(basePath + File.separator + sFile.getName());
               OutputStream out = new FileOutputStream(destFile);
 
-            // Copy the bits from Instream to Outstream
-            byte[] buf = new byte[1024];
-            int len;
-            long totalSize = sFile.length();
-            long downloadedSize = 0;
+              // Copy the bits from Instream to Outstream
+              byte[] buf = new byte[100 * 1024];
+              int len;
+              long totalSize = sFile.length();
+              long downloadedSize = 0;
 
               while ((len = inBuf.read(buf)) > 0) {
                 out.write(buf, 0, len);
