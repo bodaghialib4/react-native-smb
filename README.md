@@ -130,6 +130,29 @@ RNSmb.download(
 
 ```
 
+to upload a file from android device local path to a path in SMB server
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBUploadResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBUploadResult success');
+  } else {
+    console.log('SMBUploadResult error');
+  }
+});
+
+eventEmitter.addListener('SMBUploadProgress', (data) => {
+  console.log('SMBUploadProgress data:' + JSON.stringify(data));
+});
+RNSmb.upload(
+    'destination file path in smb server',
+    'source file path in Android device local path',
+    'file name'
+);
+
+```
+
 
 ```javascript
 import RNSmb from 'react-native-smb';
