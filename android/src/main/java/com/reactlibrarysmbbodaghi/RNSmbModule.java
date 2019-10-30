@@ -318,22 +318,23 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         @Override
         public void run() {
 
-        WritableMap statusParams = Arguments.createMap();
-        try {
-          //verifyStoragePermissions(getCurrentActivity());
-          String destinationPath = "/";
-          if (path != null && !TextUtils.isEmpty(path)) {
-            destinationPath = "/" + path + destinationPath;
-          }
-          if (fileName != null && !TextUtils.isEmpty(fileName)) {
-            destinationPath = destinationPath + fileName;
-          }
-          SmbFile sFile;
-          if (authentication != null) {
-            sFile = new SmbFile(serverURL + destinationPath, authentication);
-          } else {
-            sFile = new SmbFile(serverURL + destinationPath);
-          }
+          WritableMap statusParams = Arguments.createMap();
+          statusParams.putString("fileName", fileName + "");
+          try {
+            //verifyStoragePermissions(getCurrentActivity());
+            String destinationPath = "/";
+            if (path != null && !TextUtils.isEmpty(path)) {
+              destinationPath = "/" + path + destinationPath;
+            }
+            if (fileName != null && !TextUtils.isEmpty(fileName)) {
+              destinationPath = destinationPath + fileName;
+            }
+            SmbFile sFile;
+            if (authentication != null) {
+              sFile = new SmbFile(serverURL + destinationPath, authentication);
+            } else {
+              sFile = new SmbFile(serverURL + destinationPath);
+            }
 
 
           File destFile = new File("");
