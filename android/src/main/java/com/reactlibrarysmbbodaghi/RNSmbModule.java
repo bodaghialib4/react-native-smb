@@ -57,9 +57,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   private NtlmPasswordAuthentication authentication;
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
-  private static LinkedBlockingQueue<Runnable> taskQueue = new LinkedBlockingQueue<>();
-  private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, taskQueue);
-
+  private static LinkedBlockingQueue<Runnable> downloadTaskQueue = new LinkedBlockingQueue<>();
+  private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, downloadTaskQueue);
 
   public RNSmbModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -313,9 +312,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           @Nullable final String path,
           final String fileName
           ) {
-    downloadThreadPool.execute(new Runnable() {
-      @Override
-      public void run() {
+
+    if(checkWriteExternalStoragePermissions()) {
+      downloadThreadPool.execute(new Runnable() {
+        @Override
+        public void run() {
 
         WritableMap statusParams = Arguments.createMap();
         try {
@@ -384,9 +385,10 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           statusParams.putString("errorMessage", "exception error: " + e.getMessage());
         }
 
-        sendEvent(reactContext, "SMBDownloadResult", statusParams);
-      }
-    });
+          sendEvent(reactContext, "SMBDownloadResult", statusParams);
+        }
+      });
+    }
   }
 
   @ReactMethod
