@@ -231,6 +231,24 @@ RNSmb.makeDir(
 
 ```
 
+to delete a file or directory at the SMB server side
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBDeleteResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBDeleteResult success');
+  } else {
+    console.log('SMBDeleteResult error');
+  }
+});
+
+RNSmb.delete(
+    'path of a file or directory in smb server that must delete'
+);
+
+```
+
 
 ```javascript
 import RNSmb from 'react-native-smb';
