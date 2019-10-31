@@ -213,6 +213,24 @@ RNSmb.copyTo(
 
 ```
 
+to make a directory at the SMB server side
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBMakeDirResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBMakeDirResult success');
+  } else {
+    console.log('SMBMakeDirResult error');
+  }
+});
+
+RNSmb.makeDir(
+    'path of new directory in smb server'
+);
+
+```
+
 
 ```javascript
 import RNSmb from 'react-native-smb';
