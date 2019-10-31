@@ -153,6 +153,26 @@ RNSmb.upload(
 
 ```
 
+to rename a file at a path in SMB server
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBRenameResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBRenameResult success');
+  } else {
+    console.log('SMBRenameResult error');
+  }
+});
+
+RNSmb.rename(
+    'file path in smb server',
+    'file old name',
+    'file new name'
+);
+
+```
+
 
 ```javascript
 import RNSmb from 'react-native-smb';
