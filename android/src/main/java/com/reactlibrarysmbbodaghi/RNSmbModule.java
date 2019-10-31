@@ -58,6 +58,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   private NtlmPasswordAuthentication authentication;
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
+  private static LinkedBlockingQueue<Runnable> extraTaskQueue = new LinkedBlockingQueue<>();
+  private static ThreadPoolExecutor extraThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, extraTaskQueue);
   private static LinkedBlockingQueue<Runnable> downloadTaskQueue = new LinkedBlockingQueue<>();
   private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, downloadTaskQueue);
   private static LinkedBlockingQueue<Runnable> uploadTaskQueue = new LinkedBlockingQueue<>();
@@ -207,81 +209,88 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void testConnection() {
-    WritableMap params = Arguments.createMap();
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap params = Arguments.createMap();
+        try {
 
-    try {
+          SmbFile sFile;
+          if (authentication != null) {
+            sFile = new SmbFile(serverURL, authentication);
+          } else {
+            sFile = new SmbFile(serverURL);
+          }
 
-      SmbFile sFile;
-      if (authentication != null) {
-        sFile = new SmbFile(serverURL, authentication);
-      } else {
-        sFile = new SmbFile(serverURL);
+          String message = "can read" + " : " + String.valueOf(sFile.canRead());
+          params.putBoolean("success", true);
+          params.putString("message", "server [" + serverURL + "] can accessible.");
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("message", "exception error: " + e.getMessage());
+        }
+        sendEvent(reactContext, "SMBTestConnection", params);
       }
-
-      String message = "can read" + " : " + String.valueOf(sFile.canRead());
-      params.putBoolean("success", true);
-      params.putString("message", "server [" + serverURL + "] can accessible.");
-
-    } catch (Exception e) {
-      // Output the stack trace.
-      e.printStackTrace();
-      params.putBoolean("success", false);
-      params.putString("message", "exception error: " + e.getMessage());
-    }
-    sendEvent(reactContext, "SMBTestConnection", params);
+    });
   }
 
   @ReactMethod
-  public void list(@Nullable String path) {
-    WritableMap params = Arguments.createMap();
-    try {
+  public void list(@Nullable final String path) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap params = Arguments.createMap();
+        try {
 
-      String destinationPath = "/";
-      if (path != null && !TextUtils.isEmpty(path)) {
-        destinationPath = "/" + path + destinationPath;
-      }
-      SmbFile sFile;
-      if (authentication != null) {
-        sFile = new SmbFile(serverURL + destinationPath, authentication);
-      } else {
-        sFile = new SmbFile(serverURL + destinationPath);
-      }
+          String destinationPath = "/";
+          if (path != null && !TextUtils.isEmpty(path)) {
+            destinationPath = "/" + path + destinationPath;
+          }
+          SmbFile sFile;
+          if (authentication != null) {
+            sFile = new SmbFile(serverURL + destinationPath, authentication);
+          } else {
+            sFile = new SmbFile(serverURL + destinationPath);
+          }
 
 
-      if (sFile.canRead() && sFile.exists()) {
-        if (sFile.isDirectory()) {
-          List<SmbFile> files = Arrays.asList(sFile.listFiles());
-          WritableArray list = Arguments.createArray();
-          for (SmbFile file : files) {
-            WritableMap currentFile = Arguments.createMap();
-            currentFile.putString("name", file.getName());
+          if (sFile.canRead() && sFile.exists()) {
+            if (sFile.isDirectory()) {
+              List<SmbFile> files = Arrays.asList(sFile.listFiles());
+              WritableArray list = Arguments.createArray();
+              for (SmbFile file : files) {
+                WritableMap currentFile = Arguments.createMap();
+                currentFile.putString("name", file.getName());
 
-            //boolean
-            currentFile.putBoolean("isDirectory", file.isDirectory());
-            currentFile.putBoolean("isFile", file.isFile());
-            currentFile.putBoolean("canRead", file.canRead());
-            currentFile.putBoolean("canWrite", file.canWrite());
-            currentFile.putBoolean("isHidden", file.isHidden());
+                //boolean
+                currentFile.putBoolean("isDirectory", file.isDirectory());
+                currentFile.putBoolean("isFile", file.isFile());
+                currentFile.putBoolean("canRead", file.canRead());
+                currentFile.putBoolean("canWrite", file.canWrite());
+                currentFile.putBoolean("isHidden", file.isHidden());
 
-            //long
-            currentFile.putString("createTime", String.valueOf(file.createTime()));
-            currentFile.putString("getDate", String.valueOf(file.getDate()));
-            currentFile.putString("getLastModified", String.valueOf(file.getLastModified()));
-            currentFile.putString("lastModified", String.valueOf(file.lastModified()));
+                //long
+                currentFile.putString("createTime", String.valueOf(file.createTime()));
+                currentFile.putString("getDate", String.valueOf(file.getDate()));
+                currentFile.putString("getLastModified", String.valueOf(file.getLastModified()));
+                currentFile.putString("lastModified", String.valueOf(file.lastModified()));
 
-            //string
-            currentFile.putString("getParent", file.getParent());
-            currentFile.putString("getPath", file.getPath());
-            currentFile.putString("getShare", file.getShare());
-            currentFile.putString("getServer", file.getServer());
+                //string
+                currentFile.putString("getParent", file.getParent());
+                currentFile.putString("getPath", file.getPath());
+                currentFile.putString("getShare", file.getShare());
+                currentFile.putString("getServer", file.getServer());
 
-            //object
-            //currentFile.putMap("getContent",file.getContent());
+                //object
+                //currentFile.putMap("getContent",file.getContent());
 
-            //int
-            currentFile.putInt("getType", file.getType());
+                //int
+                currentFile.putInt("getType", file.getType());
 
-            list.pushMap(currentFile);
+                list.pushMap(currentFile);
 
 //            if (file.isDirectory()) {
 //              System.out.println("Directory: " + file.getName());
@@ -289,26 +298,28 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 //            if (file.isFile()) {
 //              System.out.println("File: " + file.getName());
 //            }
-          }
+              }
 
-          params.putBoolean("success", true);
-          params.putString("message", "path [" + path + "] list successfully.");
-          params.putArray("list", list);
-        } else {
+              params.putBoolean("success", true);
+              params.putString("message", "path [" + path + "] list successfully.");
+              params.putArray("list", list);
+            } else {
+              params.putBoolean("success", false);
+              params.putString("message", "path [" + path + "] is not a directory.");
+            }
+          } else {
+            params.putBoolean("success", false);
+            params.putString("message", "can not read [" + path + "] directory.");
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
           params.putBoolean("success", false);
-          params.putString("message", "path [" + path + "] is not a directory.");
+          params.putString("message", "exception error: " + e.getMessage());
         }
-      } else {
-        params.putBoolean("success", false);
-        params.putString("message", "can not read [" + path + "] directory.");
+        sendEvent(reactContext, "SMBList", params);
       }
-    } catch (Exception e) {
-      // Output the stack trace.
-      e.printStackTrace();
-      params.putBoolean("success", false);
-      params.putString("message", "exception error: " + e.getMessage());
-    }
-    sendEvent(reactContext, "SMBList", params);
+    });
   }
 
   @ReactMethod
