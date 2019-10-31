@@ -795,6 +795,55 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
       });
   }
 
+  @ReactMethod
+  public void delete(
+          @Nullable final String targetPath
+          ) {
+      extraThreadPool.execute(new Runnable() {
+        @Override
+        public void run() {
+          WritableMap statusParams = Arguments.createMap();
+          statusParams.putString("path", targetPath + "");
+          try {
+            String fullTargetPath = "/";
+            if (targetPath != null && !TextUtils.isEmpty(targetPath)) {
+              fullTargetPath = "/" + targetPath + fullTargetPath;
+            }
+            SmbFile targetSmbFile;
+            if (authentication != null) {
+              targetSmbFile = new SmbFile(serverURL + fullTargetPath, authentication);
+            } else {
+              targetSmbFile = new SmbFile(serverURL + fullTargetPath);
+            }
+
+            if (!targetSmbFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " can not find file or directory to delete [sourcePath]!!");
+            } else if (!targetSmbFile.canWrite()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " no permission to delete file or directory [sourcePath]!!");
+            } else {
+              targetSmbFile.delete();
+                if (!targetSmbFile.exists()) {
+                  statusParams.putBoolean("success", true);
+                  statusParams.putString("message", "directory or file successfully deleted[" + targetSmbFile.getPath() + "]");
+                } else {
+                  statusParams.putBoolean("success", false);
+                  statusParams.putString("message", "directory or file not deleted in server [" + targetSmbFile.getPath() + "]!!!!");
+                }
+
+            }
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            statusParams.putBoolean("success", false);
+            statusParams.putString("message", "delete exception error: " + e.getMessage());
+          }
+          sendEvent(reactContext, "SMBDeleteResult", statusParams);
+        }
+      });
+  }
+
 
   @ReactMethod
   public void test(String workGroup, String ip, String username, String password, String sharedFolder, String fileName) {
