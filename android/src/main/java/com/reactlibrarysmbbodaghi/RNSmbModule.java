@@ -502,6 +502,86 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void rename(
+          @Nullable final String path,
+          final String oldFileName,
+          final String newFileName
+          ) {
+      extraThreadPool.execute(new Runnable() {
+        @Override
+        public void run() {
+          WritableMap statusParams = Arguments.createMap();
+          statusParams.putString("oldFileName", oldFileName + "");
+          statusParams.putString("newFileName", newFileName + "");
+          try {
+            String oldPath = "/";
+            if (path != null && !TextUtils.isEmpty(path)) {
+              oldPath = "/" + path + oldPath;
+            }
+            if (oldFileName != null && !TextUtils.isEmpty(oldFileName)) {
+              oldPath = oldPath + oldFileName;
+            }
+            SmbFile oldSmbFile;
+            if (authentication != null) {
+              oldSmbFile = new SmbFile(serverURL + oldPath, authentication);
+            } else {
+              oldSmbFile = new SmbFile(serverURL + oldPath);
+            }
+
+            if (oldSmbFile.isDirectory()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " file is a directory [sourcePath]!!");
+
+            } else if (!oldSmbFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " file is not exist [sourcePath]!!");
+            } else if (!oldSmbFile.canRead()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " no permission  to read [sourcePath]!!");
+            } else if (!oldSmbFile.canWrite()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " no permission  to write [sourcePath]!!");
+            } else {
+              String newPath = "/";
+              if (path != null && !TextUtils.isEmpty(path)) {
+                newPath = "/" + path + newPath;
+              }
+              if (newFileName != null && !TextUtils.isEmpty(newFileName)) {
+                newPath = newPath + newFileName;
+              }
+              SmbFile newSmbFile;
+              if (authentication != null) {
+                newSmbFile = new SmbFile(serverURL + newPath, authentication);
+              } else {
+                newSmbFile = new SmbFile(serverURL + newPath);
+              }
+              if(newSmbFile.exists()){
+                statusParams.putBoolean("success", false);
+                statusParams.putString("message", "new file name ["+newSmbFile.getPath()+"] exist!!!!");
+              }else {
+                oldSmbFile.renameTo(newSmbFile);
+                if (newSmbFile != null && newSmbFile.exists()) {
+                  statusParams.putBoolean("success", true);
+                  statusParams.putString("message", "successfully renamed[" + newSmbFile.getPath() + "]");
+                } else {
+                  statusParams.putBoolean("success", false);
+                  statusParams.putString("message", "file not exist in server after rename[" + newSmbFile.getPath() + "]!!!!");
+                }
+              }
+            }
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            statusParams.putBoolean("success", false);
+            statusParams.putString("message", "rename exception error: " + e.getMessage());
+          }
+          sendEvent(reactContext, "SMBRenameResult", statusParams);
+        }
+      });
+  }
+
+
+  @ReactMethod
   public void test(String workGroup, String ip, String username, String password, String sharedFolder, String fileName) {
     try {
       NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication(workGroup, username, password);
