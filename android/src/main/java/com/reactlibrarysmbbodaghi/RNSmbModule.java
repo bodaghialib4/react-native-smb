@@ -747,6 +747,56 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
 
   @ReactMethod
+  public void makeDir(
+          @Nullable final String newPath
+          ) {
+      extraThreadPool.execute(new Runnable() {
+        @Override
+        public void run() {
+          WritableMap statusParams = Arguments.createMap();
+          statusParams.putString("path", newPath + "");
+          try {
+            String fullPath = "/";
+            if (newPath != null && !TextUtils.isEmpty(newPath)) {
+              fullPath = "/" + newPath + fullPath;
+            }
+            SmbFile newSmbFile;
+            if (authentication != null) {
+              newSmbFile = new SmbFile(serverURL + fullPath, authentication);
+            } else {
+              newSmbFile = new SmbFile(serverURL + fullPath);
+            }
+
+            if (newSmbFile.isFile()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " can not create a file [sourcePath]!!");
+            } else if (newSmbFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("message", " file already exist [sourcePath]!!");
+            } else {
+               newSmbFile.mkdirs();
+                if (newSmbFile != null && newSmbFile.exists()) {
+                  statusParams.putBoolean("success", true);
+                  statusParams.putString("message", "directory successfully created[" + newSmbFile.getPath() + "]");
+                } else {
+                  statusParams.putBoolean("success", false);
+                  statusParams.putString("message", "directory not exist in server after creation[" + newSmbFile.getPath() + "]!!!!");
+                }
+
+            }
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            statusParams.putBoolean("success", false);
+            statusParams.putString("message", "make directory exception error: " + e.getMessage());
+          }
+          sendEvent(reactContext, "SMBMakeDirResult", statusParams);
+        }
+      });
+  }
+
+
+  @ReactMethod
   public void test(String workGroup, String ip, String username, String password, String sharedFolder, String fileName) {
     try {
       NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication(workGroup, username, password);
