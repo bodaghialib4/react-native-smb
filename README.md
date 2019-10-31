@@ -173,6 +173,46 @@ RNSmb.rename(
 
 ```
 
+to move a file at the SMB server side
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBMoveResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBMoveResult success');
+  } else {
+    console.log('SMBMoveResult error');
+  }
+});
+
+RNSmb.moveTo(
+    'file current path in smb server',
+    'file target (to move) path in smb server',
+    'file name'
+);
+
+```
+
+to copy a file at the SMB server side
+```javascript
+const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+eventEmitter.addListener('SMBCopyResult', (event) => {
+  console.log(JSON.stringify(event));
+  if (event.success) {
+    console.log('SMBCopyResult success');
+  } else {
+    console.log('SMBCopyResult error');
+  }
+});
+
+RNSmb.copyTo(
+    'file from (source) path in smb server',
+    'file to (destination) path in smb server',
+    'file name'
+);
+
+```
+
 
 ```javascript
 import RNSmb from 'react-native-smb';
