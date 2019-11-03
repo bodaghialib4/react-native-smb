@@ -85,13 +85,14 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     String permission = Manifest.permission.READ_EXTERNAL_STORAGE;
 
     if (ContextCompat.checkSelfPermission(getCurrentActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
-      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
-        Toast.makeText(getCurrentActivity(), "Allow external storage reading", Toast.LENGTH_SHORT).show();
-        return false;
-      } else {
-        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
-        return true;
-      }
+      return false;
+//      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
+//        Toast.makeText(getCurrentActivity(), "Allow external storage reading", Toast.LENGTH_SHORT).show();
+//        return false;
+//      } else {
+//        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+//        return true;
+//      }
     }
     return true;
   }
@@ -100,13 +101,14 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     String permission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
     if (ContextCompat.checkSelfPermission(getCurrentActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
-      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
-        Toast.makeText(getCurrentActivity(), "Allow external storage Writing", Toast.LENGTH_SHORT).show();
-        return false;
-      } else {
-        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
-        return true;
-      }
+      return false;
+//      if (ActivityCompat.shouldShowRequestPermissionRationale(getCurrentActivity(), permission)) {
+//        Toast.makeText(getCurrentActivity(), "Allow external storage Writing", Toast.LENGTH_SHORT).show();
+//        return false;
+//      } else {
+//        ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+//        return true;
+//      }
     }
     return true;
   }
@@ -328,13 +330,14 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           final String fileName
           ) {
 
-    if(checkWriteExternalStoragePermissions()) {
-      downloadThreadPool.execute(new Runnable() {
-        @Override
-        public void run() {
+    downloadThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
 
-          WritableMap statusParams = Arguments.createMap();
-          statusParams.putString("fileName", fileName + "");
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("fileName", fileName + "");
+        if (checkWriteExternalStoragePermissions()) {
+
           try {
             //verifyStoragePermissions(getCurrentActivity());
             String destinationPath = "/";
@@ -400,11 +403,14 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             statusParams.putBoolean("success", false);
             statusParams.putString("message", "download exception error: " + e.getMessage());
           }
-
-          sendEvent(reactContext, "SMBDownloadResult", statusParams);
+        }else{
+          statusParams.putBoolean("success", false);
+          statusParams.putString("message", "no permission to access device storage!!! ");
         }
-      });
-    }
+        sendEvent(reactContext, "SMBDownloadResult", statusParams);
+      }
+    });
+
   }
 
   @ReactMethod
@@ -413,13 +419,12 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           @Nullable final String sourcePath,
           final String sourceFileName
           ) {
-    if(checkReadExternalStoragePermissions()) {
-      uploadThreadPool.execute(new Runnable() {
-        @Override
-        public void run() {
-
-          WritableMap statusParams = Arguments.createMap();
-          statusParams.putString("fileName", sourceFileName + "");
+    uploadThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("fileName", sourceFileName + "");
+        if (checkReadExternalStoragePermissions()) {
           try {
             String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
             String sourcePathWithSeparator = "";
@@ -442,7 +447,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               SmbFile sFilePath;
               String destinationPathWithSeparator = "/";
               if (destinationPath != null && !TextUtils.isEmpty(destinationPath)) {
-                destinationPathWithSeparator += "/" + destinationPath ;
+                destinationPathWithSeparator += "/" + destinationPath;
               }
               if (sourceFileName != null && !TextUtils.isEmpty(sourceFileName)) {
                 destinationPathWithSeparator += "/" + sourceFileName;
@@ -480,12 +485,12 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               }
               inBuf.close();
               smbFileOutputStream.close();
-              if(sFile != null && sFile.exists()){
+              if (sFile != null && sFile.exists()) {
                 statusParams.putBoolean("success", true);
-                statusParams.putString("message", "successfully upload["+sFile.getPath()+"]");
-              }else {
+                statusParams.putString("message", "successfully upload[" + sFile.getPath() + "]");
+              } else {
                 statusParams.putBoolean("success", false);
-                statusParams.putString("message", "file not exist in server after upload["+sFile.getPath()+"]!!!!");
+                statusParams.putString("message", "file not exist in server after upload[" + sFile.getPath() + "]!!!!");
               }
 
             }
@@ -495,10 +500,14 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             statusParams.putBoolean("success", false);
             statusParams.putString("message", "upload exception error: " + e.getMessage());
           }
-          sendEvent(reactContext, "SMBUploadResult", statusParams);
+        }else {
+          statusParams.putBoolean("success", false);
+          statusParams.putString("message", "no permission to access device storage!!! ");
         }
-      });
-    }
+        sendEvent(reactContext, "SMBUploadResult", statusParams);
+      }
+    });
+
   }
 
   @ReactMethod
