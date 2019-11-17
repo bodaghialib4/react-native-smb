@@ -66,7 +66,20 @@ class SMBClient {
         RNSmb.init(this.clientId, options,
             (data) => {
                 //console.log('RNSmb init success. data: ' + JSON.stringify(data));
-                //data => success - errorCode - message
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+    //smbTestConnection
+    testConnection(callback) {
+        //test connection
+        RNSmb.testConnection(this.clientId,
+            (data) => {
+                //console.log('testConnection data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {
                     callback(data);
                 }
