@@ -1,4 +1,3 @@
-
 package com.reactlibrarysmbbodaghi;
 
 import com.facebook.react.bridge.Arguments;
@@ -31,7 +30,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +57,10 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   private final ReactApplicationContext reactContext;
 
   private NtlmPasswordAuthentication authentication;
+
+  Map<String, NtlmPasswordAuthentication> authenticationPool = new HashMap<>();
+  Map<String, String> serverURLPool = new HashMap<>();
+
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
   private static LinkedBlockingQueue<Runnable> extraTaskQueue = new LinkedBlockingQueue<>();
@@ -135,55 +140,87 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void init(ReadableMap options, Callback successCallback, Callback errorCallback) {
-    String workGroup = "", username = "", password = "";
-    String ip = "", port = "", sharedFolder = "";
+  public void init(
+          final String clientId,
+          final ReadableMap options,
+          final Callback callback
+  ) {
 
-    try {
-      workGroup = options.hasKey("workGroup") ? options.getString("workGroup") : "";
-      username = options.hasKey("username") ? options.getString("username") : "";
-      password = options.hasKey("password") ? options.getString("password") : "";
-      ip = options.hasKey("ip") ? options.getString("ip") : "";
-      port = options.hasKey("port") ? options.getString("port") : "";
-      sharedFolder = options.hasKey("sharedFolder") ? options.getString("sharedFolder") : "";
-    } catch (Exception e) {
-      //options structure error
-      e.printStackTrace();
-      errorCallback.invoke("invalid options structure: " + e.getMessage());
-      return;
-    }
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap params = Arguments.createMap();
+        params.putString("name", "init");
+        params.putString("clientId", clientId);
 
-    try {
-      if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(password)) {
-        authentication = new NtlmPasswordAuthentication(workGroup, username, password);
-      }
-    } catch (Exception e) {
-      // NtlmPasswordAuthentication creation error
-      e.printStackTrace();
-      errorCallback.invoke("exception in initializing authentication: " + e.getMessage());
-      return;
-    }
+        String workGroup = "", username = "", password = "";
+        String ip = "", port = "", sharedFolder = "";
 
-    try {
-      if (!TextUtils.isEmpty(ip)) {
-        String server_url = "smb://" + ip;
-        if (!TextUtils.isEmpty(port)) {
-          server_url += ":" + port;
+        try {
+          workGroup = options.hasKey("workGroup") ? options.getString("workGroup") : "";
+          username = options.hasKey("username") ? options.getString("username") : "";
+          password = options.hasKey("password") ? options.getString("password") : "";
+          ip = options.hasKey("ip") ? options.getString("ip") : "";
+          port = options.hasKey("port") ? options.getString("port") : "";
+          sharedFolder = options.hasKey("sharedFolder") ? options.getString("sharedFolder") : "";
+        } catch (Exception e) {
+          //options structure error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1001");
+          params.putString("message", "invalid options structure: " + e.getMessage());
+          callback.invoke(params);
+          return;
         }
-        if (!TextUtils.isEmpty(sharedFolder)) {
-          server_url += "/" + sharedFolder;
-        }
-        serverURL = server_url;
-        successCallback.invoke(serverURL);
-        return;
-      }
-    } catch (Exception e) {
-      // server url initializing error
-      e.printStackTrace();
-      errorCallback.invoke("exception in initializing server url: " + e.getMessage());
-      return;
-    }
 
+
+        try {
+          if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(password)) {
+            authentication = new NtlmPasswordAuthentication(workGroup, username, password);
+            authenticationPool.put(clientId, authentication);
+
+          }
+        } catch (Exception e) {
+          // NtlmPasswordAuthentication creation error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1002");
+          params.putString("message", "exception in initializing authentication: " + e.getMessage());
+          callback.invoke(params);
+          return;
+        }
+
+
+        try {
+          if (!TextUtils.isEmpty(ip)) {
+            String server_url = "smb://" + ip;
+            if (!TextUtils.isEmpty(port)) {
+              server_url += ":" + port;
+            }
+            if (!TextUtils.isEmpty(sharedFolder)) {
+              server_url += "/" + sharedFolder;
+            }
+            serverURLPool.put(clientId, server_url);
+            serverURL = server_url;
+            params.putBoolean("success", true);
+            params.putString("errorCode", "0000");
+            params.putString("serverURL", server_url);
+            callback.invoke(params);
+            return;
+          }
+        } catch (Exception e) {
+          // server url initializing error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1003");
+          params.putString("message", "exception in initializing server url: " + e.getMessage());
+          callback.invoke(params);
+          return;
+        }
+      }
+
+
+    });
   }
 
   @ReactMethod
