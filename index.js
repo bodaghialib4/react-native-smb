@@ -157,6 +157,27 @@ class SMBClient {
         RNSmb.cancelUpload(this.clientId, uploadId);
     }
 
+    //smbDisconnect
+    disconnect(callback) {
+        if (this.downloadProgressListener) {
+            this.downloadProgressListener.remove();
+            this.downloadProgressListener = null;
+        }
+        if (this.uploadProgressListener) {
+            this.uploadProgressListener.remove();
+            this.uploadProgressListener = null;
+        }
+        RNSmb.disconnect(
+            this.clientId,
+            (data) => {
+                //console.log('disconnect data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
 }
 
 
