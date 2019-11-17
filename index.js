@@ -124,10 +124,37 @@ class SMBClient {
         );
     }
 
-
     //smbCancelDownload
     cancelDownload(downloadId) {
         RNSmb.cancelDownload(this.clientId, downloadId);
+    }
+
+    //smbUpload
+    upload(fromPath, toPath, fileName, callback) {
+        if (!this.uploadProgressListener) {
+            this.uploadProgressListener = DeviceEventEmitter.addListener('SMBUploadProgress', this._handleEvent.bind(this));
+        }
+        let uploadId = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+
+        RNSmb.upload(
+            this.clientId,
+            uploadId,
+            fromPath, //a path in device storage
+            toPath,//a path in smb server side
+            fileName,//file name
+            (data) => {
+                //console.log('upload data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+    //smbCancelUpload
+    cancelUpload(uploadId) {
+        RNSmb.cancelUpload(this.clientId, uploadId);
     }
 
 }
