@@ -1135,6 +1135,54 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           sendEvent(reactContext, "SMBDeleteResult", statusParams);
         }
       });
+
+  @ReactMethod
+  public void disconnect(
+          final String clientId,
+          final Callback callback
+  ) {
+    WritableMap statusParams = Arguments.createMap();
+    statusParams.putString("name", "disconnect");
+    statusParams.putString("clientId", clientId);
+    try {
+
+      //serverURLPool
+      serverURLPool.remove(clientId);
+      //authenticationPool
+      authenticationPool.remove(clientId);
+
+      //uploadPool
+      //get user's uploads then cancel all
+
+      List<String> uploadIds = clientUploadsPool.get(clientId);
+      if (uploadIds != null && !uploadIds.isEmpty()) {
+        for (int i = 0; i < uploadIds.size(); i++) {
+          uploadPool.remove(uploadIds.get(i));
+        }
+      }
+
+      //downloadPool
+      //get user's downloads then cancel all
+
+      List<String> downloadIds = clientDownloadsPool.get(clientId);
+      if (downloadIds != null && !downloadIds.isEmpty()) {
+        for (int i = 0; i < downloadIds.size(); i++) {
+          downloadPool.remove(downloadIds.get(i));
+        }
+      }
+
+      statusParams.putBoolean("success", true);
+      statusParams.putString("errorCode", "0000");
+      statusParams.putString("message", "client [" + clientId + "] disconnected successfully");
+
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      statusParams.putBoolean("success", false);
+      statusParams.putString("errorCode", "0101");
+      statusParams.putString("message", "disconnect exception error[" + clientId + "]: " + e.getMessage());
+    }
+    callback.invoke(statusParams);
   }
 
 
