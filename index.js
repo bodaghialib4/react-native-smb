@@ -100,6 +100,36 @@ class SMBClient {
         });
     }
 
+    //smbDownload
+    download(fromPath, toPath, fileName, callback) {
+        if (!this.downloadProgressListener) {
+            this.downloadProgressListener = DeviceEventEmitter.addListener('SMBDownloadProgress', this._handleEvent.bind(this));
+        }
+
+        let downloadId = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+        //test download
+        RNSmb.download(
+            this.clientId,
+            downloadId,
+            fromPath, //a path in smb server side
+            toPath,//a path in device storage
+            fileName,//file name
+            (data) => {
+                //console.log('download data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+
+    //smbCancelDownload
+    cancelDownload(downloadId) {
+        RNSmb.cancelDownload(this.clientId, downloadId);
+    }
+
 }
 
 
