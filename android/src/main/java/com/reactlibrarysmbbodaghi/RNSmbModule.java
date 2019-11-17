@@ -272,18 +272,25 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void list(@Nullable final String path) {
+  public void list(
+          final String clientId,
+          @Nullable final String path,
+          final Callback callback
+  ) {
     extraThreadPool.execute(new Runnable() {
       @Override
       public void run() {
         WritableMap params = Arguments.createMap();
+        params.putString("name", "list");
+        params.putString("clientId", clientId);
         try {
-
           String destinationPath = "/";
           if (path != null && !TextUtils.isEmpty(path)) {
             destinationPath = "/" + path + destinationPath;
           }
           SmbFile sFile;
+          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             sFile = new SmbFile(serverURL + destinationPath, authentication);
           } else {
@@ -326,15 +333,10 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
                 list.pushMap(currentFile);
 
-//            if (file.isDirectory()) {
-//              System.out.println("Directory: " + file.getName());
-//            }
-//            if (file.isFile()) {
-//              System.out.println("File: " + file.getName());
-//            }
               }
 
               params.putBoolean("success", true);
+              params.putString("errorCode", "0000");
               params.putString("message", "path [" + path + "] list successfully.");
               params.putArray("list", list);
             } else {
@@ -343,15 +345,17 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             }
           } else {
             params.putBoolean("success", false);
+            params.putString("errorCode", "1005");
             params.putString("message", "can not read [" + path + "] directory.");
           }
         } catch (Exception e) {
           // Output the stack trace.
           e.printStackTrace();
           params.putBoolean("success", false);
+          params.putString("errorCode", "0101");
           params.putString("message", "exception error: " + e.getMessage());
         }
-        sendEvent(reactContext, "SMBList", params);
+        callback.invoke(params);
       }
     });
   }
