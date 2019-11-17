@@ -88,6 +88,18 @@ class SMBClient {
         );
     }
 
+    //smbList
+    list(path, callback) {
+        //list files & folders
+        RNSmb.list(this.clientId, path, (data) => {
+            //console.log('list data: ' + JSON.stringify(data));
+            if (callback && typeof callback === "function") {
+                callback(data);
+            }
+            this._handleEvent(data);
+        });
+    }
+
 }
 
 
