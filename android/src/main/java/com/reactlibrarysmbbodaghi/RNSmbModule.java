@@ -63,6 +63,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   Map<String, String> serverURLPool = new HashMap<>();
   Map<String, String> downloadPool = new HashMap<>();
   Map<String, List<String>> clientDownloadsPool = new HashMap<>();
+  Map<String, String> uploadPool = new HashMap<>();
+  Map<String, List<String>> clientUploadsPool = new HashMap<>();
+
 
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
@@ -579,99 +582,216 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void upload(
-          @Nullable final String destinationPath,
-          @Nullable final String sourcePath,
-          final String sourceFileName
-          ) {
+          final String clientId,
+          final String uploadId,
+          @Nullable final String fromPath,
+          @Nullable final String toPath,
+          final String fileName,
+          final Callback callback
+  ) {
     uploadThreadPool.execute(new Runnable() {
       @Override
       public void run() {
+
+        File srcFile = null;
+        SmbFile destFile = null;
+        boolean isUploadInitialized = false;
+
         WritableMap statusParams = Arguments.createMap();
-        statusParams.putString("fileName", sourceFileName + "");
-        if (checkReadExternalStoragePermissions()) {
-          try {
+        statusParams.putString("name", "upload");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("uploadId", uploadId);
+        statusParams.putString("fileName", fileName + "");
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        try {
+          if (checkReadExternalStoragePermissions()) {
             String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
             String sourcePathWithSeparator = "";
-            if (sourcePath != null && !TextUtils.isEmpty(sourcePath)) {
-              sourcePathWithSeparator = sourcePath + File.separator;
+            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+              sourcePathWithSeparator = fromPath + File.separator;
             }
-            File sourceFile = new File(basePath + File.separator + sourcePathWithSeparator + sourceFileName);
-            SmbFile sFile = null;
-            if (sourceFile.isDirectory()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " [sourcePath] is a directory!!");
+            srcFile = new File(basePath + File.separator + sourcePathWithSeparator + fileName);
 
-            } else if (!sourceFile.exists()) {
+            if (srcFile.isDirectory()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " [sourcePath] is not exist!!");
-            } else if (!sourceFile.canRead()) {
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is a directory!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.exists()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to read [sourcePath]!!");
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is not exist!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.canRead()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", " no permission  to read [" + sourcePathWithSeparator + fileName + "]!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            //source file initialized successfully, now initializing destination file
+
+            String destinationPathWithSeparator = "/";
+            if (toPath != null && !TextUtils.isEmpty(toPath)) {
+              destinationPathWithSeparator += "/" + toPath;
+            }
+            if (fileName != null && !TextUtils.isEmpty(fileName)) {
+              destinationPathWithSeparator += "/" + fileName;
+            }
+            SmbFile destFilePath;
+            NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+            String serverURL = serverURLPool.get(clientId);
+            if (authentication != null) {
+              destFile = new SmbFile(serverURL + destinationPathWithSeparator, authentication);
+              destFilePath = new SmbFile(destFile.getParent(), authentication);
             } else {
-              SmbFile sFilePath;
-              String destinationPathWithSeparator = "/";
-              if (destinationPath != null && !TextUtils.isEmpty(destinationPath)) {
-                destinationPathWithSeparator += "/" + destinationPath;
-              }
-              if (sourceFileName != null && !TextUtils.isEmpty(sourceFileName)) {
-                destinationPathWithSeparator += "/" + sourceFileName;
-              }
-
-              if (authentication != null) {
-                sFile = new SmbFile(serverURL + destinationPathWithSeparator, authentication);
-                sFilePath = new SmbFile(sFile.getParent(), authentication);
-
-              } else {
-                sFile = new SmbFile(serverURL + destinationPathWithSeparator);
-                sFilePath = new SmbFile(sFile.getParent());
-
-              }
-
-              if (!sFilePath.exists()) sFilePath.mkdirs();
-
-              BufferedInputStream inBuf = new BufferedInputStream(new FileInputStream(sourceFile));
-              final SmbFileOutputStream smbFileOutputStream = new SmbFileOutputStream(sFile);
-              //final byte[] buf = new byte[16 * 1024 * 1024];
-              final byte[] buf = new byte[100 * 1024];
-              int len;
-              long totalSize = sourceFile.length();
-              long uploadedSize = 0;
-              while ((len = inBuf.read(buf)) > 0) {
-                smbFileOutputStream.write(buf, 0, len);
-                //todo: why write twice? I comment second write!!!!!
-                //smbFileOutputStream.write(buf, 0, len);
-                uploadedSize += len;
-                WritableMap params = Arguments.createMap();
-                params.putString("fileName", sourceFile.getName() + "");
-                params.putString("totalSize", totalSize + "");
-                params.putString("uploadedSize", uploadedSize + "");
-                sendEvent(reactContext, "SMBUploadProgress", params);
-              }
-              inBuf.close();
-              smbFileOutputStream.close();
-              if (sFile != null && sFile.exists()) {
-                statusParams.putBoolean("success", true);
-                statusParams.putString("message", "successfully upload[" + sFile.getPath() + "]");
-              } else {
-                statusParams.putBoolean("success", false);
-                statusParams.putString("message", "file not exist in server after upload[" + sFile.getPath() + "]!!!!");
-              }
-
+              destFile = new SmbFile(serverURL + destinationPathWithSeparator);
+              destFilePath = new SmbFile(destFile.getParent());
             }
+            if (!destFilePath.exists()) destFilePath.mkdirs();
+            //destination file initialized successfully
+
+            statusParams.putString("destPath", "" + destFile.getPath());
+            statusParams.putBoolean("success", true);
+            statusParams.putString("errorCode", "0000");
+            statusParams.putString("message", "upload initialized successfully!!! ");
+
+            isUploadInitialized = true;
+
+          } else {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "no permission to access device storage!!! ");
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "upload exception error: " + e.getMessage());
+        }
+
+        callback.invoke(statusParams);
+
+
+        if (isUploadInitialized && srcFile != null && destFile != null) {
+          try {
+            BufferedInputStream inBuf = new BufferedInputStream(new FileInputStream(srcFile));
+            final SmbFileOutputStream smbFileOutputStream = new SmbFileOutputStream(destFile);
+
+            // write the bits from Instream to Outstream
+            //byte[] buf = new byte[16 * 1024 * 1024];
+            byte[] buf = new byte[100 * 1024];
+            int len;
+            long totalSize = srcFile.length();
+            long uploadedSize = 0;
+
+            List<String> uploadIds = clientUploadsPool.remove(clientId);
+            if (uploadIds == null || uploadIds.isEmpty()) uploadIds = new ArrayList<String>();
+            if (uploadIds.indexOf(uploadId) == -1) uploadIds.add(uploadId);
+            clientUploadsPool.put(clientId, uploadIds);
+
+            uploadPool.put(uploadId, "inProgress");
+            String uploadStatus = "inProgress";
+
+            while ((len = inBuf.read(buf)) > 0) {
+              uploadStatus = uploadPool.get(uploadId);
+              if (uploadStatus == null) uploadStatus = "cancel";
+//              if (uploadStatus == "cancel") {
+//                break;
+//              }
+              smbFileOutputStream.write(buf, 0, len);
+              //todo: why write twice? I comment second write!!!!!
+              //smbFileOutputStream.write(buf, 0, len);
+              uploadedSize += len;
+
+              boolean isCompleted = totalSize == uploadedSize;
+              String message = "uploading";
+              String status = "uploading";
+
+              if (isCompleted) {
+                message = "upload completed successfully.";
+                status = "completed";
+              } else if (uploadStatus == "cancel") {
+                message = "upload canceled";
+                status = "canceled";
+              }
+
+              WritableMap params = Arguments.createMap();
+              params.putString("name", "uploadProgress");
+              params.putBoolean("success", true);
+              params.putBoolean("completed", isCompleted);
+              params.putString("errorCode", "0000");
+              params.putString("message", message);
+              params.putString("status", status);
+              params.putString("clientId", clientId);
+              params.putString("uploadId", uploadId);
+              params.putString("fileName", srcFile.getName() + "");
+              params.putString("fromPath", fromPath + "");
+              params.putString("toPath", toPath + "");
+              params.putString("srcPath", "" + srcFile.getAbsolutePath());
+              params.putString("destPath", "" + destFile.getPath());
+              params.putString("totalSize", totalSize + "");
+              params.putString("uploadedSize", uploadedSize + "");
+              sendEvent(reactContext, "SMBUploadProgress", params);
+
+              if (uploadStatus == "cancel") {
+                break;
+              }
+            }
+            inBuf.close();
+            smbFileOutputStream.close();
+
+            if (uploadStatus == "cancel") {
+              destFile.delete();
+            }
+
           } catch (Exception e) {
             // Output the stack trace.
             e.printStackTrace();
-            statusParams.putBoolean("success", false);
-            statusParams.putString("message", "upload exception error: " + e.getMessage());
+            WritableMap params = Arguments.createMap();
+            params.putString("name", "uploadProgress");
+            params.putString("clientId", clientId);
+            params.putString("uploadId", uploadId);
+            params.putString("fileName", srcFile.getName() + "");
+            params.putString("fromPath", fromPath + "");
+            params.putString("toPath", toPath + "");
+            params.putString("srcPath", "" + srcFile.getAbsolutePath());
+            params.putString("destPath", "" + destFile.getPath());
+            params.putBoolean("success", false);
+            params.putString("errorCode", "0101");
+            params.putString("message", "upload progress exception error: " + e.getMessage());
+            sendEvent(reactContext, "SMBUploadProgress", params);
           }
-        }else {
-          statusParams.putBoolean("success", false);
-          statusParams.putString("message", "no permission to access device storage!!! ");
+          uploadPool.remove(uploadId);
+
+          List<String> uploadIds = clientUploadsPool.remove(clientId);
+
+          if (uploadIds != null && !uploadIds.isEmpty()) {
+            uploadIds.remove(uploadId);
+            clientUploadsPool.put(clientId, uploadIds);
+          }
         }
-        sendEvent(reactContext, "SMBUploadResult", statusParams);
       }
     });
+  }
 
+  @ReactMethod
+  public void cancelUpload(
+          final String clientId,
+          final String uploadId
+  ) {
+    try {
+      uploadPool.put(uploadId, "cancel");
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+    }
   }
 
   @ReactMethod
