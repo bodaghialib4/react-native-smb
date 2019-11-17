@@ -59,11 +59,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
   private static LinkedBlockingQueue<Runnable> extraTaskQueue = new LinkedBlockingQueue<>();
-  private static ThreadPoolExecutor extraThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, extraTaskQueue);
+  private static ThreadPoolExecutor extraThreadPool = new ThreadPoolExecutor(2, 10, 5000, TimeUnit.MILLISECONDS, extraTaskQueue);
   private static LinkedBlockingQueue<Runnable> downloadTaskQueue = new LinkedBlockingQueue<>();
-  private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, downloadTaskQueue);
+  private static ThreadPoolExecutor downloadThreadPool = new ThreadPoolExecutor(2, 10, 5000, TimeUnit.MILLISECONDS, downloadTaskQueue);
   private static LinkedBlockingQueue<Runnable> uploadTaskQueue = new LinkedBlockingQueue<>();
-  private static ThreadPoolExecutor uploadThreadPool = new ThreadPoolExecutor(2, 10, 5000,  TimeUnit.MILLISECONDS, uploadTaskQueue);
+  private static ThreadPoolExecutor uploadThreadPool = new ThreadPoolExecutor(2, 10, 5000, TimeUnit.MILLISECONDS, uploadTaskQueue);
 
 
   public RNSmbModule(ReactApplicationContext reactContext) {
@@ -111,29 +111,6 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 //      }
     }
     return true;
-  }
-
-
-
-  /**
-   * Checks if the app has permission to write to device storage
-   * <p>
-   * If the app does not has permission then the user will be prompted to grant permissions
-   *
-   * @param activity
-   */
-  public static void verifyStoragePermissions(Activity activity) {
-    // Check if we have write permission
-    int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-    if (permission != PackageManager.PERMISSION_GRANTED) {
-      // We don't have permission so prompt the user
-      ActivityCompat.requestPermissions(
-              activity,
-              PERMISSIONS_STORAGE,
-              REQUEST_EXTERNAL_STORAGE
-      );
-    }
   }
 
 
