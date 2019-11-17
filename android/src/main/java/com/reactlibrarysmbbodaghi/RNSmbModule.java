@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +61,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   Map<String, NtlmPasswordAuthentication> authenticationPool = new HashMap<>();
   Map<String, String> serverURLPool = new HashMap<>();
+  Map<String, String> downloadPool = new HashMap<>();
+  Map<String, List<String>> clientDownloadsPool = new HashMap<>();
 
   private String serverURL = "smb://server_ip:server_port/shared_folder";
 
@@ -264,7 +267,6 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           params.putString("errorCode", "0101");
           params.putString("message", "exception error: " + e.getMessage());
         }
-        //sendEvent(reactContext, "SMBTestConnection", params);
         callback.invoke(params);
 
       }
@@ -362,91 +364,217 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void download(
-          @Nullable final String path,
-          final String fileName
-          ) {
+          final String clientId,
+          final String downloadId,
+          @Nullable final String fromPath,
+          @Nullable final String toPath,
+          final String fileName,
+          final Callback callback
+  ) {
 
     downloadThreadPool.execute(new Runnable() {
       @Override
       public void run() {
 
-        WritableMap statusParams = Arguments.createMap();
-        statusParams.putString("fileName", fileName + "");
-        if (checkWriteExternalStoragePermissions()) {
+        SmbFile srcFile = null;
+        File destFile = null;
+        boolean isDownloadInitialized = false;
 
-          try {
-            //verifyStoragePermissions(getCurrentActivity());
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "download");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("downloadId", downloadId);
+        statusParams.putString("fileName", fileName + "");
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        try {
+          if (checkWriteExternalStoragePermissions()) {
+
             String destinationPath = "/";
-            if (path != null && !TextUtils.isEmpty(path)) {
-              destinationPath = "/" + path + destinationPath;
+            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+              destinationPath = "/" + fromPath + destinationPath;
             }
             if (fileName != null && !TextUtils.isEmpty(fileName)) {
               destinationPath = destinationPath + fileName;
             }
-            SmbFile sFile;
+            //SmbFile srcFile;
+            NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+            String serverURL = serverURLPool.get(clientId);
             if (authentication != null) {
-              sFile = new SmbFile(serverURL + destinationPath, authentication);
+              srcFile = new SmbFile(serverURL + destinationPath, authentication);
             } else {
-              sFile = new SmbFile(serverURL + destinationPath);
+              srcFile = new SmbFile(serverURL + destinationPath);
             }
 
 
-            File destFile = new File("");
-//      if (TextUtils.isEmpty(fileName)) {
-//        if (sFile.isDirectory()) {
-//          destFile = getFolder(sFile);
-//        }
-            if (sFile.isDirectory()) {
+            if (srcFile.isDirectory()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " [destinationPath] is a directory!!");
-            } else if (!sFile.exists()) {
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", " [" + destinationPath + "] is a directory!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.exists()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " [destinationPath] is not exist directory!!");
-            } else if (!sFile.canRead()) {
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", " [" + destinationPath + "] is not exist!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.canRead()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to read [destinationPath]!!");
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "no permission  to read [" + destinationPath + "]!!");
+              callback.invoke(statusParams);
+              return;
+            }
+
+            //source file initialized successfully, now initializing destination file
+
+            String basePath;
+            if (toPath == null || TextUtils.isEmpty(toPath)) {
+              basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
             } else {
-              BufferedInputStream inBuf = new BufferedInputStream(sFile.getInputStream());
-              String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-              destFile = new File(basePath + File.separator + sFile.getName());
-              OutputStream out = new FileOutputStream(destFile);
+              basePath = toPath;
+            }
 
-              // Copy the bits from Instream to Outstream
-              byte[] buf = new byte[100 * 1024];
-              int len;
-              long totalSize = sFile.length();
-              long downloadedSize = 0;
+            //File destFile;
+            destFile = new File(basePath + File.separator + srcFile.getName());
 
-              while ((len = inBuf.read(buf)) > 0) {
-                out.write(buf, 0, len);
-                downloadedSize += len;
-                WritableMap params = Arguments.createMap();
-                params.putString("fileName", sFile.getName() + "");
-                params.putString("totalSize", totalSize + "");
-                params.putString("downloadedSize", downloadedSize + "");
-                sendEvent(reactContext, "SMBDownloadProgress", params);
+            //destination file initialized successfully
 
+            statusParams.putString("destPath", "" + destFile.getAbsolutePath());
+            statusParams.putBoolean("success", true);
+            statusParams.putString("errorCode", "0000");
+            statusParams.putString("message", "download initialized successfully!!! ");
 
+            isDownloadInitialized = true;
+          } else {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "no permission to access device storage!!! ");
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "download exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+
+        if (isDownloadInitialized && srcFile != null && destFile != null) {
+          try {
+            BufferedInputStream inBuf = new BufferedInputStream(srcFile.getInputStream());
+            OutputStream out = new FileOutputStream(destFile);
+
+            // write the bits from Instream to Outstream
+            //byte[] buf = new byte[16 * 1024 * 1024];
+            byte[] buf = new byte[100 * 1024];
+            int len;
+            long totalSize = srcFile.length();
+            long downloadedSize = 0;
+
+            List<String> downloadIds = clientDownloadsPool.remove(clientId);
+            if (downloadIds == null || downloadIds.isEmpty()) downloadIds = new ArrayList<String>();
+            if (downloadIds.indexOf(downloadId) == -1) downloadIds.add(downloadId);
+            clientDownloadsPool.put(clientId, downloadIds);
+
+            downloadPool.put(downloadId, "inProgress");
+            String downloadStatus = "inProgress";
+
+            while ((len = inBuf.read(buf)) > 0) {
+              downloadStatus = downloadPool.get(downloadId);
+              if (downloadStatus == null) downloadStatus = "cancel";
+//              if (downloadStatus == "cancel") {
+//                break;
+//              }
+              out.write(buf, 0, len);
+              downloadedSize += len;
+
+              boolean isCompleted = totalSize == downloadedSize;
+              String message = "downloading";
+              String status = "downloading";
+
+              if (isCompleted) {
+                message = "download completed successfully.";
+                status = "completed";
+              } else if (downloadStatus == "cancel") {
+                message = "download canceled";
+                status = "canceled";
               }
-              inBuf.close();
-              out.close();
-              statusParams.putBoolean("success", true);
-              statusParams.putString("message", "");
+
+              WritableMap params = Arguments.createMap();
+              params.putString("name", "downloadProgress");
+              params.putBoolean("success", true);
+              params.putBoolean("completed", isCompleted);
+              params.putString("errorCode", "0000");
+              params.putString("message", message);
+              params.putString("status", status);
+              params.putString("clientId", clientId);
+              params.putString("downloadId", downloadId);
+              params.putString("fileName", srcFile.getName() + "");
+              params.putString("fromPath", fromPath + "");
+              params.putString("toPath", toPath + "");
+              params.putString("srcPath", "" + srcFile.getPath());
+              params.putString("destPath", "" + destFile.getAbsolutePath());
+              params.putString("totalSize", totalSize + "");
+              params.putString("downloadedSize", downloadedSize + "");
+              sendEvent(reactContext, "SMBDownloadProgress", params);
+
+              if (downloadStatus == "cancel") {
+                break;
+              }
             }
+            inBuf.close();
+            out.close();
+
+
+            if (downloadStatus == "cancel") {
+              destFile.delete();
+            }
+
           } catch (Exception e) {
             // Output the stack trace.
             e.printStackTrace();
-            statusParams.putBoolean("success", false);
-            statusParams.putString("message", "download exception error: " + e.getMessage());
+            WritableMap params = Arguments.createMap();
+            params.putString("name", "downloadProgress");
+            params.putString("clientId", clientId);
+            params.putString("downloadId", downloadId);
+            params.putString("fileName", srcFile.getName() + "");
+            params.putString("fromPath", fromPath + "");
+            params.putString("toPath", toPath + "");
+            params.putString("srcPath", "" + srcFile.getPath());
+            params.putString("destPath", "" + destFile.getAbsolutePath());
+            params.putBoolean("success", false);
+            params.putString("errorCode", "0101");
+            params.putString("message", "download progress exception error: " + e.getMessage());
+            sendEvent(reactContext, "SMBDownloadProgress", params);
           }
-        }else{
-          statusParams.putBoolean("success", false);
-          statusParams.putString("message", "no permission to access device storage!!! ");
+
+          downloadPool.remove(downloadId);
+          List<String> downloadIds = clientDownloadsPool.remove(clientId);
+          if (downloadIds != null && !downloadIds.isEmpty()) {
+            downloadIds.remove(downloadId);
+            clientDownloadsPool.put(clientId, downloadIds);
+          }
         }
-        sendEvent(reactContext, "SMBDownloadResult", statusParams);
       }
     });
 
+  }
+
+  @ReactMethod
+  public void cancelDownload(
+          final String clientId,
+          final String downloadId
+  ) {
+    try {
+      downloadPool.put(downloadId, "cancel");
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+    }
   }
 
   @ReactMethod
