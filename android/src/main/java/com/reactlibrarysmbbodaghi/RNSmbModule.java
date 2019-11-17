@@ -224,31 +224,49 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void testConnection() {
+  public void testConnection(
+          final String clientId,
+          final Callback callback
+  ) {
     extraThreadPool.execute(new Runnable() {
       @Override
       public void run() {
         WritableMap params = Arguments.createMap();
-        try {
+        params.putString("name", "testConnection");
+        params.putString("clientId", clientId);
 
+        try {
           SmbFile sFile;
+          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          String serverURL = serverURLPool.get(clientId);
+          params.putString("serverURL", serverURL);
           if (authentication != null) {
             sFile = new SmbFile(serverURL, authentication);
           } else {
             sFile = new SmbFile(serverURL);
           }
 
-          String message = "can read" + " : " + String.valueOf(sFile.canRead());
-          params.putBoolean("success", true);
-          params.putString("message", "server [" + serverURL + "] can accessible.");
+          if (sFile.canRead()) {
+            params.putBoolean("success", true);
+            params.putString("errorCode", "0000");
+            params.putString("message", "server [" + serverURL + "] can accessible.");
+          } else {
+            params.putBoolean("success", false);
+            params.putString("errorCode", "1004");
+            params.putString("message", "server [" + serverURL + "] not accessible.");
+          }
+
 
         } catch (Exception e) {
           // Output the stack trace.
           e.printStackTrace();
           params.putBoolean("success", false);
+          params.putString("errorCode", "0101");
           params.putString("message", "exception error: " + e.getMessage());
         }
-        sendEvent(reactContext, "SMBTestConnection", params);
+        //sendEvent(reactContext, "SMBTestConnection", params);
+        callback.invoke(params);
+
       }
     });
   }
