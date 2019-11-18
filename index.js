@@ -174,6 +174,23 @@ class SMBClient {
         );
     }
 
+    //smbMoveTo
+    moveTo(fromPath, toPath, fileName, callback) {
+        RNSmb.moveTo(
+            this.clientId,
+            fromPath,//file path in smb server
+            toPath,//old file name
+            fileName,//new file name
+            (data) => {
+                //console.log('moveTo data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
     //smbDisconnect
     disconnect(callback) {
         if (this.downloadProgressListener) {
