@@ -1088,51 +1088,62 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void makeDir(
-          @Nullable final String newPath
-          ) {
-      extraThreadPool.execute(new Runnable() {
-        @Override
-        public void run() {
-          WritableMap statusParams = Arguments.createMap();
-          statusParams.putString("path", newPath + "");
-          try {
-            String fullPath = "/";
-            if (newPath != null && !TextUtils.isEmpty(newPath)) {
-              fullPath = "/" + newPath + fullPath;
-            }
-            SmbFile newSmbFile;
-            if (authentication != null) {
-              newSmbFile = new SmbFile(serverURL + fullPath, authentication);
-            } else {
-              newSmbFile = new SmbFile(serverURL + fullPath);
-            }
-
-            if (newSmbFile.isFile()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " can not create a file [sourcePath]!!");
-            } else if (newSmbFile.exists()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " file already exist [sourcePath]!!");
-            } else {
-               newSmbFile.mkdirs();
-                if (newSmbFile != null && newSmbFile.exists()) {
-                  statusParams.putBoolean("success", true);
-                  statusParams.putString("message", "directory successfully created[" + newSmbFile.getPath() + "]");
-                } else {
-                  statusParams.putBoolean("success", false);
-                  statusParams.putString("message", "directory not exist in server after creation[" + newSmbFile.getPath() + "]!!!!");
-                }
-
-            }
-          } catch (Exception e) {
-            // Output the stack trace.
-            e.printStackTrace();
-            statusParams.putBoolean("success", false);
-            statusParams.putString("message", "make directory exception error: " + e.getMessage());
+          final String clientId,
+          @Nullable final String newPath,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "makeDir");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("newPath", newPath + "");
+        try {
+          String fullPath = "/";
+          if (newPath != null && !TextUtils.isEmpty(newPath)) {
+            fullPath = "/" + newPath + fullPath;
           }
-          sendEvent(reactContext, "SMBMakeDirResult", statusParams);
+          SmbFile newSmbFile;
+          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          String serverURL = serverURLPool.get(clientId);
+          if (authentication != null) {
+            newSmbFile = new SmbFile(serverURL + fullPath, authentication);
+          } else {
+            newSmbFile = new SmbFile(serverURL + fullPath);
+          }
+
+          if (newSmbFile.isFile()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " can not create a file [sourcePath]!!");
+          } else if (newSmbFile.exists()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " file already exist [sourcePath]!!");
+          } else {
+            newSmbFile.mkdirs();
+            if (newSmbFile != null && newSmbFile.exists()) {
+              statusParams.putBoolean("success", true);
+              statusParams.putString("errorCode", "0000");
+              statusParams.putString("message", "directory successfully created[" + newSmbFile.getPath() + "]");
+            } else {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "directory not exist in server after creation[" + newSmbFile.getPath() + "]!!!!");
+            }
+
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "make directory exception error: " + e.getMessage());
         }
-      });
+        callback.invoke(statusParams);
+      }
+    });
   }
 
   @ReactMethod
