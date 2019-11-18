@@ -23,15 +23,15 @@ class SMBClient {
 
 
     _handleEvent(event) {
-        let eventName = "anEventName";
-        if (event && !event.success) {
-            eventName = "error"
-        } else {
-            eventName = event.name
-        }
-
-        if (this.handlers.hasOwnProperty(eventName) && this.clientId === event.clientId) {
-            this.handlers[eventName](event);
+        if (event && this.clientId === event.clientId) {
+            if (this.handlers.hasOwnProperty(event.name)) {
+                this.handlers[event.name](event);
+            }
+            if (!event.success) {
+                if (this.handlers.hasOwnProperty("error")) {
+                    this.handlers["error"](event);
+                }
+            }
         }
     }
 
