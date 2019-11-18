@@ -891,85 +891,100 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void moveTo(
-          @Nullable final String oldPath,
-          @Nullable final String newPath,
-          final String fileName
-          ) {
-      extraThreadPool.execute(new Runnable() {
-        @Override
-        public void run() {
-          WritableMap statusParams = Arguments.createMap();
-          statusParams.putString("fileName", fileName + "");
-          try {
-            String oldFullPath = "/";
-            if (oldPath != null && !TextUtils.isEmpty(oldPath)) {
-              oldFullPath = "/" + oldPath + oldFullPath;
+          final String clientId,
+          @Nullable final String fromPath,
+          @Nullable final String toPath,
+          final String fileName,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "moveTo");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        statusParams.putString("fileName", fileName + "");
+        try {
+          String oldFullPath = "/";
+          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+            oldFullPath = "/" + fromPath + oldFullPath;
+          }
+          if (fileName != null && !TextUtils.isEmpty(fileName)) {
+            oldFullPath = oldFullPath + fileName;
+          }
+          SmbFile oldSmbFile;
+          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          String serverURL = serverURLPool.get(clientId);
+          if (authentication != null) {
+            oldSmbFile = new SmbFile(serverURL + oldFullPath, authentication);
+          } else {
+            oldSmbFile = new SmbFile(serverURL + oldFullPath);
+          }
+
+          if (oldSmbFile.isDirectory()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " file is a directory [sourcePath]!!");
+          } else if (!oldSmbFile.exists()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " file is not exist [sourcePath]!!");
+          } else if (!oldSmbFile.canRead()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " no permission  to read [sourcePath]!!");
+          } else if (!oldSmbFile.canWrite()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " no permission  to write [sourcePath]!!");
+          } else {
+            String newFullPath = "/";
+            if (toPath != null && !TextUtils.isEmpty(toPath)) {
+              newFullPath = "/" + toPath + newFullPath;
             }
             if (fileName != null && !TextUtils.isEmpty(fileName)) {
-              oldFullPath = oldFullPath + fileName;
+              newFullPath = newFullPath + fileName;
             }
-            SmbFile oldSmbFile;
+            SmbFile newSmbFile;
+            SmbFile newSmbFilePath;
             if (authentication != null) {
-              oldSmbFile = new SmbFile(serverURL + oldFullPath, authentication);
+              newSmbFile = new SmbFile(serverURL + newFullPath, authentication);
+              newSmbFilePath = new SmbFile(newSmbFile.getParent(), authentication);
             } else {
-              oldSmbFile = new SmbFile(serverURL + oldFullPath);
+              newSmbFile = new SmbFile(serverURL + newFullPath);
+              newSmbFilePath = new SmbFile(newSmbFile.getParent(), authentication);
             }
-
-            if (oldSmbFile.isDirectory()) {
+            if (newSmbFile.exists()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " file is a directory [sourcePath]!!");
-
-            } else if (!oldSmbFile.exists()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " file is not exist [sourcePath]!!");
-            } else if (!oldSmbFile.canRead()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to read [sourcePath]!!");
-            } else if (!oldSmbFile.canWrite()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to write [sourcePath]!!");
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "file in destination path [" + newSmbFile.getPath() + "] exist!!!!");
             } else {
-              String newFullPath = "/";
-              if (newPath != null && !TextUtils.isEmpty(newPath)) {
-                newFullPath = "/" + newPath + newFullPath;
-              }
-              if (fileName != null && !TextUtils.isEmpty(fileName)) {
-                newFullPath = newFullPath + fileName;
-              }
-              SmbFile newSmbFile;
-              SmbFile newSmbFilePath;
-              if (authentication != null) {
-                newSmbFile = new SmbFile(serverURL + newFullPath, authentication);
-                newSmbFilePath = new SmbFile(newSmbFile.getParent(), authentication);
+
+              if (!newSmbFilePath.exists()) newSmbFilePath.mkdirs();
+              oldSmbFile.renameTo(newSmbFile);
+              if (newSmbFile != null && newSmbFile.exists()) {
+                statusParams.putBoolean("success", true);
+                statusParams.putString("errorCode", "0000");
+                statusParams.putString("message", "successfully moved[" + newSmbFile.getPath() + "]");
               } else {
-                newSmbFile = new SmbFile(serverURL + newFullPath);
-                newSmbFilePath = new SmbFile(newSmbFile.getParent(), authentication);
-              }
-              if(newSmbFile.exists()){
                 statusParams.putBoolean("success", false);
-                statusParams.putString("message", "file in destination path ["+newSmbFile.getPath()+"] exist!!!!");
-              }else {
-
-                if (!newSmbFilePath.exists()) newSmbFilePath.mkdirs();
-                oldSmbFile.renameTo(newSmbFile);
-                if (newSmbFile != null && newSmbFile.exists()) {
-                  statusParams.putBoolean("success", true);
-                  statusParams.putString("message", "successfully moved[" + newSmbFile.getPath() + "]");
-                } else {
-                  statusParams.putBoolean("success", false);
-                  statusParams.putString("message", "file not exist in server after moving[" + newSmbFile.getPath() + "]!!!!");
-                }
+                statusParams.putString("errorCode", "1111");
+                statusParams.putString("message", "file not exist in server after moving[" + newSmbFile.getPath() + "]!!!!");
               }
             }
-          } catch (Exception e) {
-            // Output the stack trace.
-            e.printStackTrace();
-            statusParams.putBoolean("success", false);
-            statusParams.putString("message", "move exception error: " + e.getMessage());
           }
-          sendEvent(reactContext, "SMBMoveResult", statusParams);
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "move exception error: " + e.getMessage());
         }
-      });
+        callback.invoke(statusParams);
+      }
+    });
   }
 
   @ReactMethod
