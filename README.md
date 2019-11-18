@@ -49,209 +49,240 @@
 
 import react-native-smb where want to use, 
 ```javascript
-import RNSmb from 'react-native-smb';
+import SMBClient from 'react-native-smb';
 ```
 
-then init smb server connection properties
+then create new SMBClient (and set connection properties)
 ```javascript
-let options = {
-  workGroup: 'WORKGROUP',
-  ip: '192.168.1.108',//smb server ip
-  username: 'aba',
-  password: '121',
-  sharedFolder: 'ali',
-};
+this.smbClient = new SMBClient(
+    '0.0.0.0',//ip
+    '',//port
+    'sharedFolder',//sharedFolder,
+    'workGroup',//workGroup,
+    'username',//username,
+    'password',//password,
+    (data) => {//callback - can be null (not setting)
+        console.log('new SMBClient data (callback): ' + JSON.stringify(data));
+    },
+);
 
-RNSmb.init(options,
-  (url) => {
-    //success callback 
-    console.log('success. url: ' + url);
-  }
-  ,
-  (errorMessage) => {
-    //error callback
-    console.log('errorMessage: ' + errorMessage);
-  },
+this.smbClient.on(
+    'init',
+    (data) => {
+        console.log('new SMBClient data (on init): ' + JSON.stringify(data));
+    },
+);
+```
+
+to catch all errors, set smbClient.on with "error" event name
+```javascript
+this.smbClient.on(
+    'error',
+    (data) => {
+        console.log('error in SMBClient (on error): ' + JSON.stringify(data));
+    },
 );
 ```
 
 
-test server connectivity
+test server connectivity of created smbClient
 ```javascript
-
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBTestConnection', (event) => {
-  if (event.success) {
-    console.log('TestConnection success message: ' + event.message);
-  } else {
-    console.log('TestConnection error message: ' + event.message);
-  }
-});
-
-RNSmb.testConnection();
-
+this.smbClient.on(
+    'testConnection',
+    (data) => {
+        console.log('testConnection data (on testConnection): ' + JSON.stringify(data));
+    },
+);
+this.smbClient.testConnection(
+    (data) => {//callback
+        console.log('testConnection data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
-list files and folders in given path of smb server
+list files and folders in given path of smb server for created smbClient
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-   
-eventEmitter.addListener('SMBList', (event) => {
-  if (event.success) {
-    console.log('TestConnection success message: ' + event.message);
-    console.log('event: ' + JSON.stringify(event));
-  } else {
-    console.log('TestConnection error message: ' + event.message);
-  }
-});
-
-RNSmb.list("target path")
-```
-
-to download a file from smb server and save it in Download folder of Android device
-```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBDownloadResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBDownloadResult success');
-  } else {
-    console.log('SMBDownloadResult error');
-  }
-});
-
-eventEmitter.addListener('SMBDownloadProgress', (data) => {
-  console.log('SMBDownloadProgress data:' + JSON.stringify(data));
-});
-RNSmb.download(
-    'file path in smb server',
-    'file name in smb server',
+this.smbClient.on(
+    'list',
+    (data) => {
+        console.log('list data (on list): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.list(
+    'target/path/to/list',//the path to list files and folders
+    (data) => {//callback
+        console.log('list data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to download a file from smb server for created smbClient
+```javascript
+this.smbClient.on(
+    'downloadProgress',
+    (data) => {
+        console.log('download progress data (on downloadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelDownload(data.downloadId);
+    },
+);
+
+this.smbClient.on(
+    'download',
+    (data) => {
+        console.log('download data (on download): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.download(
+    'from/path',//source path of file to download (in SMB server)
+    'to/path',//destination path to save downloaded file (in Android device)
+    'file.name',//the name of file to download
+    (data) => {//callback
+        console.log('download data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to upload a file from android device local path to a path in SMB server
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBUploadResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBUploadResult success');
-  } else {
-    console.log('SMBUploadResult error');
-  }
-});
+this.smbClient.on(
+    'uploadProgress',
+    (data) => {
+        console.log('upload progress data (on uploadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelUpload(data.uploadId)
 
-eventEmitter.addListener('SMBUploadProgress', (data) => {
-  console.log('SMBUploadProgress data:' + JSON.stringify(data));
-});
-RNSmb.upload(
-    'destination file path in smb server',
-    'source file path in Android device local path',
-    'file name'
+    },
 );
 
+this.smbClient.on(
+    'upload',
+    (data) => {
+        console.log('upload data (on upload): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.upload(
+    'from/path',//source path of file to upload (in Android devic)
+    'to/path',//destination path to to upload (in SMB server)
+    'file.name',//the name of file to upload
+    (data) => {//callback
+        console.log('upload data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to rename a file at a path in SMB server
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBRenameResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBRenameResult success');
-  } else {
-    console.log('SMBRenameResult error');
-  }
-});
-
-RNSmb.rename(
-    'file path in smb server',
-    'file old name',
-    'file new name'
+this.smbClient.on(
+    'rename',
+    (data) => {
+        console.log('rename data (on rename): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.rename(
+    'path/of/file', //a path of file to rename in SMB server
+    'old.name', //old file name
+    'new.name', //new file name
+    (data) => {//callback
+        console.log('rename data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to move a file at the SMB server side
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBMoveResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBMoveResult success');
-  } else {
-    console.log('SMBMoveResult error');
-  }
-});
-
-RNSmb.moveTo(
-    'file current path in smb server',
-    'file target (to move) path in smb server',
-    'file name'
+this.smbClient.on(
+    'moveTo',
+    (data) => {
+        console.log('moveTo data (on moveTo): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.moveTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    (data) => {//callback
+        console.log('moveTo data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to copy a file at the SMB server side
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBCopyResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBCopyResult success');
-  } else {
-    console.log('SMBCopyResult error');
-  }
-});
-
-RNSmb.copyTo(
-    'file from (source) path in smb server',
-    'file to (destination) path in smb server',
-    'file name'
+this.smbClient.on(
+    'copyTo',
+    (data) => {
+        console.log('copyTo data (on copyTo): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.copyTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    (data) => {//callback
+        console.log('copyTo data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to make a directory at the SMB server side
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBMakeDirResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBMakeDirResult success');
-  } else {
-    console.log('SMBMakeDirResult error');
-  }
-});
-
-RNSmb.makeDir(
-    'path of new directory in smb server'
+this.smbClient.on(
+    'makeDir',
+    (data) => {
+        console.log('makeDir data (on makeDir): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.makeDir(
+    'path/to/make', //path of new directory in smb server
+    (data) => {//callback
+        console.log('makeDir data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
 
 to delete a file or directory at the SMB server side
 ```javascript
-const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
-eventEmitter.addListener('SMBDeleteResult', (event) => {
-  console.log(JSON.stringify(event));
-  if (event.success) {
-    console.log('SMBDeleteResult success');
-  } else {
-    console.log('SMBDeleteResult error');
-  }
-});
-
-RNSmb.delete(
-    'path of a file or directory in smb server that must delete'
+this.smbClient.on(
+    'delete',
+    (data) => {
+        console.log('delete data (on delete): ' + JSON.stringify(data));
+    },
 );
 
+this.smbClient.delete(
+    'path/to/delete', //path of a file or directory in smb server to delete
+    (data) => {//callback
+        console.log('delete data (callback): ' + JSON.stringify(data));
+    },
+);
 ```
+
+to disconnect a client from server
+```javascript
+this.smbClient.on(
+    'disconnect',
+    (data) => {
+        console.log('disconnect data (on disconnect): ' + JSON.stringify(data));
+        this.smbClient = null
+    },
+);
+
+this.smbClient.disconnect(
+    (data) => {//callback
+        console.log('disconnect data (callback): ' + JSON.stringify(data));
+    },
+);
+````
 
 
 ```javascript
-import RNSmb from 'react-native-smb';
+import SMBClient from 'react-native-smb';
 
 // TODO: What to do with the module?
 RNSmb;
