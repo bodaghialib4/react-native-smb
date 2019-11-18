@@ -989,84 +989,100 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void copyTo(
+          final String clientId,
           @Nullable final String fromPath,
           @Nullable final String toPath,
-          final String fileName
-          ) {
-      extraThreadPool.execute(new Runnable() {
-        @Override
-        public void run() {
-          WritableMap statusParams = Arguments.createMap();
-          statusParams.putString("fileName", fileName + "");
-          try {
-            String fromFullPath = "/";
-            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-              fromFullPath = "/" + fromPath + fromFullPath;
+          final String fileName,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "copyTo");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        statusParams.putString("fileName", fileName + "");
+        try {
+          String fromFullPath = "/";
+          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+            fromFullPath = "/" + fromPath + fromFullPath;
+          }
+          if (fileName != null && !TextUtils.isEmpty(fileName)) {
+            fromFullPath = fromFullPath + fileName;
+          }
+          SmbFile fromSmbFile;
+          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          String serverURL = serverURLPool.get(clientId);
+          if (authentication != null) {
+            fromSmbFile = new SmbFile(serverURL + fromFullPath, authentication);
+          } else {
+            fromSmbFile = new SmbFile(serverURL + fromFullPath);
+          }
+
+          if (fromSmbFile.isDirectory()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " file is a directory [sourcePath]!!");
+
+          } else if (!fromSmbFile.exists()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " file is not exist [sourcePath]!!");
+          } else if (!fromSmbFile.canRead()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " no permission  to read [sourcePath]!!");
+          } else if (!fromSmbFile.canWrite()) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", " no permission  to write [sourcePath]!!");
+          } else {
+            String toFullPath = "/";
+            if (toPath != null && !TextUtils.isEmpty(toPath)) {
+              toFullPath = "/" + toPath + toFullPath;
             }
             if (fileName != null && !TextUtils.isEmpty(fileName)) {
-              fromFullPath = fromFullPath + fileName;
+              toFullPath = toFullPath + fileName;
             }
-            SmbFile fromSmbFile;
+            SmbFile toSmbFile;
+            SmbFile toSmbFilePath;
             if (authentication != null) {
-              fromSmbFile = new SmbFile(serverURL + fromFullPath, authentication);
+              toSmbFile = new SmbFile(serverURL + toFullPath, authentication);
+              toSmbFilePath = new SmbFile(toSmbFile.getParent(), authentication);
             } else {
-              fromSmbFile = new SmbFile(serverURL + fromFullPath);
+              toSmbFile = new SmbFile(serverURL + toFullPath);
+              toSmbFilePath = new SmbFile(toSmbFile.getParent(), authentication);
             }
-
-            if (fromSmbFile.isDirectory()) {
+            if (toSmbFile.exists()) {
               statusParams.putBoolean("success", false);
-              statusParams.putString("message", " file is a directory [sourcePath]!!");
-
-            } else if (!fromSmbFile.exists()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " file is not exist [sourcePath]!!");
-            } else if (!fromSmbFile.canRead()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to read [sourcePath]!!");
-            } else if (!fromSmbFile.canWrite()) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("message", " no permission  to write [sourcePath]!!");
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "file in destination path [" + toSmbFile.getPath() + "] exist!!!!");
             } else {
-              String toFullPath = "/";
-              if (toPath != null && !TextUtils.isEmpty(toPath)) {
-                toFullPath = "/" + toPath + toFullPath;
-              }
-              if (fileName != null && !TextUtils.isEmpty(fileName)) {
-                toFullPath = toFullPath + fileName;
-              }
-              SmbFile toSmbFile;
-              SmbFile toSmbFilePath;
-              if (authentication != null) {
-                toSmbFile = new SmbFile(serverURL + toFullPath, authentication);
-                toSmbFilePath = new SmbFile(toSmbFile.getParent(), authentication);
+              if (!toSmbFilePath.exists()) toSmbFilePath.mkdirs();
+              fromSmbFile.copyTo(toSmbFile);
+              if (toSmbFile != null && toSmbFile.exists()) {
+                statusParams.putBoolean("success", true);
+                statusParams.putString("errorCode", "0000");
+                statusParams.putString("message", "successfully copy[" + toSmbFile.getPath() + "]");
               } else {
-                toSmbFile = new SmbFile(serverURL + toFullPath);
-                toSmbFilePath = new SmbFile(toSmbFile.getParent(), authentication);
-              }
-              if(toSmbFile.exists()){
                 statusParams.putBoolean("success", false);
-                statusParams.putString("message", "file in destination path ["+toSmbFile.getPath()+"] exist!!!!");
-              }else {
-                if (!toSmbFilePath.exists()) toSmbFilePath.mkdirs();
-                fromSmbFile.copyTo(toSmbFile);
-                if (toSmbFile != null && toSmbFile.exists()) {
-                  statusParams.putBoolean("success", true);
-                  statusParams.putString("message", "successfully copy[" + toSmbFile.getPath() + "]");
-                } else {
-                  statusParams.putBoolean("success", false);
-                  statusParams.putString("message", "file not exist in server after copy[" + toSmbFile.getPath() + "]!!!!");
-                }
+                statusParams.putString("errorCode", "1111");
+                statusParams.putString("message", "file not exist in server after copy[" + toSmbFile.getPath() + "]!!!!");
               }
             }
-          } catch (Exception e) {
-            // Output the stack trace.
-            e.printStackTrace();
-            statusParams.putBoolean("success", false);
-            statusParams.putString("message", "copy exception error: " + e.getMessage());
           }
-          sendEvent(reactContext, "SMBCopyResult", statusParams);
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "copy exception error: " + e.getMessage());
         }
-      });
+        callback.invoke(statusParams);
+      }
+    });
   }
 
 
