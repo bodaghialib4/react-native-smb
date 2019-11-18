@@ -208,6 +208,21 @@ class SMBClient {
         );
     }
 
+    //smbMkdir
+    makeDir(newPath, callback) {
+        RNSmb.makeDir(
+            this.clientId,
+            newPath,// path of new directory in smb server
+            (data) => {
+                //console.log('makeDir data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
     //smbDisconnect
     disconnect(callback) {
         if (this.downloadProgressListener) {
