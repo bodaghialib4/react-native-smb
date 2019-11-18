@@ -223,6 +223,21 @@ class SMBClient {
         );
     }
 
+    //smbRm
+    delete(path, callback) {
+        RNSmb.delete(
+            this.clientId,
+            path,// path of a file or directory in smb server that must delete
+            (data) => {
+                //console.log('delete data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
     //smbDisconnect
     disconnect(callback) {
         if (this.downloadProgressListener) {
