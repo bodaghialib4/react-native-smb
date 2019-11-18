@@ -157,6 +157,23 @@ class SMBClient {
         RNSmb.cancelUpload(this.clientId, uploadId);
     }
 
+    //smbRename
+    rename(path, oldName, newName, callback) {
+        RNSmb.rename(
+            this.clientId,
+            path,//file path in smb server
+            oldName,//old file name
+            newName,//new file name
+            (data) => {
+                //console.log('rename data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
     //smbDisconnect
     disconnect(callback) {
         if (this.downloadProgressListener) {
