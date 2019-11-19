@@ -1,13 +1,14 @@
 
 # react-native-smb
 
-# _**this is under deployment and not completed yet**_
+### this is a smb client that work only in android (iOS not implemented)
+ tested in RN 61.2
 
 ## Getting started
 
 `$ npm install react-native-smb --save`
 
-### Mostly automatic installation
+### Mostly automatic installation (for RN < 60)
 
 `$ react-native link react-native-smb`
 
@@ -16,12 +17,9 @@
 
 #### iOS
 
-1. In XCode, in the project navigator, right click `Libraries` ➜ `Add Files to [your project's name]`
-2. Go to `node_modules` ➜ `react-native-smb` and add `RNReactNativeSmb.xcodeproj`
-3. In XCode, in the project navigator, select your project. Add `libRNReactNativeSmb.a` to your project's `Build Phases` ➜ `Link Binary With Libraries`
-4. Run your project (`Cmd+R`)<
+iOS not supported
 
-#### Android
+#### Android (for RN < 60)
 
 1. Open up `android/app/src/main/java/[...]/MainActivity.java`
   - Add `import com.reactlibrary.RNReactNativeSmbPackage;` to the imports at the top of the file
@@ -35,14 +33,6 @@
   	```
       compile project(':react-native-smb')
   	```
-
-#### Windows
-[Read it! :D](https://github.com/ReactWindows/react-native)
-
-1. In Visual Studio add the `RNReactNativeSmb.sln` in `node_modules/react-native-smb/windows/RNReactNativeSmb.sln` folder to their solution, reference from their app.
-2. Open up your `MainPage.cs` app
-  - Add `using React.Native.Smb.RNReactNativeSmb;` to the usings at the top of the file
-  - Add `new RNReactNativeSmbPackage()` to the `List<IReactPackage>` returned by the `Packages` method
 
 
 ## Usage
