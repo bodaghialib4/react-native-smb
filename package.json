@@ -10,8 +10,18 @@
   "keywords": [
     "react-native"
   ],
-  "author": "",
-  "license": "",
+  "repository": {
+    "type" : "git",
+    "url": "https://github.com/bodaghialib4/react-native-smb"
+  },
+  "homepage": "https://github.com/bodaghialib4/react-native-smb",
+  "keywords": ["react native", "smb", "samba"],
+  "author": "Ali Bodaghi <bodaghialib4@gmail.com> (https://github.com/bodaghialib4/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bodaghialib4/react-native-smb/issues"
+  },
+
   "peerDependencies": {
     "react-native": "^0.41.2"
   }
