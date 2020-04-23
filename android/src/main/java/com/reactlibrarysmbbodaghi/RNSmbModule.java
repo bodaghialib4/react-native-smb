@@ -146,7 +146,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void init(
+  public void SMB1Init(
           final String clientId,
           final ReadableMap options,
           final Callback callback
@@ -230,7 +230,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void testConnection(
+  public void SMB1TestConnection(
           final String clientId,
           final Callback callback
   ) {
@@ -277,7 +277,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void list(
+  public void SMB1List(
           final String clientId,
           @Nullable final String path,
           final Callback callback
@@ -366,7 +366,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void download(
+  public void SMB1Download(
           final String clientId,
           final String downloadId,
           @Nullable final String fromPath,
@@ -568,7 +568,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void cancelDownload(
+  public void SMB1CancelDownload(
           final String clientId,
           final String downloadId
   ) {
@@ -581,7 +581,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void upload(
+  public void SMB1Upload(
           final String clientId,
           final String uploadId,
           @Nullable final String fromPath,
@@ -782,7 +782,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void cancelUpload(
+  public void SMB1CancelUpload(
           final String clientId,
           final String uploadId
   ) {
@@ -795,7 +795,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void rename(
+  public void SMB1Rename(
           final String clientId,
           @Nullable final String path,
           final String oldFileName,
@@ -890,7 +890,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void moveTo(
+  public void SMB1MoveTo(
           final String clientId,
           @Nullable final String fromPath,
           @Nullable final String toPath,
@@ -988,7 +988,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void copyTo(
+  public void SMB1CopyTo(
           final String clientId,
           @Nullable final String fromPath,
           @Nullable final String toPath,
@@ -1087,7 +1087,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
 
   @ReactMethod
-  public void makeDir(
+  public void SMB1MakeDir(
           final String clientId,
           @Nullable final String newPath,
           final Callback callback
@@ -1147,7 +1147,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void delete(
+  public void SMB1Delete(
           final String clientId,
           @Nullable final String targetPath,
           final Callback callback
@@ -1201,7 +1201,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void disconnect(
+  public void SMB1Disconnect(
           final String clientId,
           final Callback callback
   ) {
@@ -1251,7 +1251,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
 
   @ReactMethod
-  public void test(String workGroup, String ip, String username, String password, String sharedFolder, String fileName) {
+  public void SMB1Test(String workGroup, String ip, String username, String password, String sharedFolder, String fileName) {
     try {
       NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication(workGroup, username, password);
 
