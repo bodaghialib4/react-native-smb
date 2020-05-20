@@ -277,6 +277,51 @@ this.smbClient.disconnect(
 </details>
 
 
+### For SMB version 2&3:
+<details>
+  <summary>SMB 2&3 details</summary>
+  
+  
+import react-native-smb where want to use,
+```javascript
+import SMBClient from 'react-native-smb';
+```
+
+then create new SMBClient (and set connection properties)
+```javascript
+this.smbClient = new SMBClient(
+    '0.0.0.0',//ip
+    '',//port
+    'sharedFolder',//sharedFolder,
+    'workGroup',//workGroup,
+    'username',//username,
+    'password',//password,
+    (data) => {//callback - can be null (not setting)
+        console.log('new SMBClient data (callback): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.on(
+    'connect',
+    (data) => {
+        console.log('new SMBClient data (on connect): ' + JSON.stringify(data));
+    },
+);
+```
+
+to catch all errors, set smbClient.on with "error" event name
+```javascript
+this.smbClient.on(
+    'error',
+    (data) => {
+        console.log('error in SMBClient (on error): ' + JSON.stringify(data));
+    },
+);
+```
+
+
+</details>
+
 ```javascript
 import SMBClient from 'react-native-smb';
 

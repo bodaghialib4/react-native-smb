@@ -18,7 +18,7 @@ class SMBClient {
         this.currentPath = "";
         this.parentPath = "";
 
-        this.initOptions(callback);
+        this.connect(callback);
     }
 
 
@@ -52,20 +52,20 @@ class SMBClient {
         return this.parentPath()
     }
 
-    //smbInitOptions
-    initOptions(callback) {
+    //connect server
+    connect(callback) {
         //init RNSmb
         let options = {
             workGroup: this.workGroup,
-            ip: this.ip,
+            IP: this.ip,
             port: this.port,
             username: this.username,
             password: this.password,
             sharedFolder: this.sharedFolder,
         };
-        RNSmb.SMB1Init(this.clientId, options,
+        RNSmb.connect(this.clientId, options,
             (data) => {
-                //console.log('RNSmb init success. data: ' + JSON.stringify(data));
+                //console.log('RNSmb connect success. data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {
                     callback(data);
                 }

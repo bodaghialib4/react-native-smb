@@ -10,6 +10,12 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
 
 import android.Manifest;
 import android.app.Activity;
@@ -60,6 +66,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   private NtlmPasswordAuthentication authentication;
 
   Map<String, NtlmPasswordAuthentication> authenticationPoolSMB1 = new HashMap<>();
+  Map<String, AuthenticationContext> authenticationPool = new HashMap<>();
+  Map<String, Connection> connectionPool = new HashMap<>();
+  Map<String, DiskShare> diskSharePool = new HashMap<>();
   Map<String, String> serverURLPool = new HashMap<>();
   Map<String, String> downloadPool = new HashMap<>();
   Map<String, List<String>> clientDownloadsPool = new HashMap<>();
@@ -409,11 +418,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
             String serverURL = serverURLPool.get(clientId);
             if (TextUtils.isEmpty(serverURL)) {
-                statusParams.putBoolean("success", false);
-                statusParams.putString("errorCode", "1111");
-                statusParams.putString("message", " serverURL is null [for client "+clientId+"] !!");
-                callback.invoke(statusParams);
-                return;
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", " serverURL is null [for client "+clientId+"] !!");
+              callback.invoke(statusParams);
+              return;
             }
             if (authentication != null) {
               srcFile = new SmbFile(serverURL + destinationPath, authentication);
@@ -1283,6 +1292,122 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
       e.printStackTrace();
       String message = " error in testing SMB";
     }
+  }
+
+
+  /**
+   * SMB 2&3 supported apis (used SMBJ)
+   *
+   */
+
+  @ReactMethod
+  public void connect(
+          final String clientId,
+          final ReadableMap options,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap params = Arguments.createMap();
+        params.putString("name", "connect");
+        params.putString("clientId", clientId);
+
+        String workGroup = "", username = "", password = "";
+        String IP = "", port = "", sharedFolder = "";
+        AuthenticationContext authentication;
+
+        try {
+          workGroup = options.hasKey("workGroup") ? options.getString("workGroup") : "";
+          username = options.hasKey("username") ? options.getString("username") : "";
+          password = options.hasKey("password") ? options.getString("password") : "";
+          IP = options.hasKey("IP") ? options.getString("IP") : "";
+          port = options.hasKey("port") ? options.getString("port") : "";
+          sharedFolder = options.hasKey("sharedFolder") ? options.getString("sharedFolder") : "";
+        } catch (Exception e) {
+          //options structure error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1001");
+          params.putString("message", "invalid options structure: " + e.getMessage());
+          callback.invoke(params);
+          return;
+        }
+
+        if(TextUtils.isEmpty(IP) || TextUtils.isEmpty(sharedFolder)) {
+          String emptyFields = "";
+          if (TextUtils.isEmpty(IP)) emptyFields += "IP";
+          if (TextUtils.isEmpty(sharedFolder)) {
+            if (!TextUtils.isEmpty(emptyFields)) emptyFields += ", ";
+            emptyFields += "sharedFolder";
+          }
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1002");
+          params.putString("message", emptyFields + " could nut be empty and must set!!! ");
+          callback.invoke(params);
+          return;
+
+        }
+
+
+        try {
+          if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(password)) {
+            authentication = new AuthenticationContext("" + username, password.toCharArray(), "" + workGroup);
+          }else{
+            authentication = AuthenticationContext.anonymous();
+          }
+          authenticationPool.put(clientId, authentication);
+
+        } catch (Exception e) {
+          // AuthenticationContext creation error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1002");
+          params.putString("message", "exception in creating authentication: " + e.getMessage());
+          callback.invoke(params);
+          return;
+        }
+
+        try {
+          SMBClient client = new SMBClient();
+
+          Connection connection;
+          if (TextUtils.isEmpty(port)) {
+            connection = client.connect("" + IP);
+          } else {
+            connection = client.connect("" + IP, Integer.parseInt("" + port));
+
+          }
+          connectionPool.put(clientId, connection);
+          Session session = connection.authenticate(authentication);
+
+          DiskShare share = (DiskShare) session.connectShare("" + sharedFolder);
+          diskSharePool.put(clientId, share);
+
+          for (FileIdBothDirectoryInformation f : share.list("", "*")) {
+            System.out.println("File : " + f.getFileName());
+          }
+
+
+          params.putBoolean("success", true);
+          params.putString("errorCode", "0000");
+          params.putString("serverIP", IP);
+          params.putString("serverPort", port);
+          params.putString("sharedFolder", sharedFolder);
+          callback.invoke(params);
+          return;
+
+        } catch (Exception e) {
+          // server connection error
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1003");
+          params.putString("message", "exception in connecting server url: " + e.getMessage());
+          callback.invoke(params);
+          return;
+        }
+      }
+    });
   }
 
 }
