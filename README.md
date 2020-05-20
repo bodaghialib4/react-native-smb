@@ -37,6 +37,11 @@ iOS not supported
 
 ## Usage
 
+### For SMB version 1:
+<details>
+  <summary>SMB1 details</summary>
+  
+  
 import react-native-smb where want to use, 
 ```javascript
 import SMBClient from 'react-native-smb';
@@ -269,6 +274,7 @@ this.smbClient.disconnect(
     },
 );
 ````
+</details>
 
 
 ```javascript
