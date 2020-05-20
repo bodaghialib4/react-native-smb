@@ -44,7 +44,7 @@ iOS not supported
   
 import react-native-smb where want to use, 
 ```javascript
-import SMBClient from 'react-native-smb';
+import {SMB1Client} from 'react-native-smb';
 ```
 
 then create new SMBClient (and set connection properties)
