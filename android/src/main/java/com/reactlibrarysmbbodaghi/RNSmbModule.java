@@ -59,7 +59,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
   private NtlmPasswordAuthentication authentication;
 
-  Map<String, NtlmPasswordAuthentication> authenticationPool = new HashMap<>();
+  Map<String, NtlmPasswordAuthentication> authenticationPoolSMB1 = new HashMap<>();
   Map<String, String> serverURLPool = new HashMap<>();
   Map<String, String> downloadPool = new HashMap<>();
   Map<String, List<String>> clientDownloadsPool = new HashMap<>();
@@ -145,6 +145,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     Toast.makeText(getReactApplicationContext(), text, Toast.LENGTH_SHORT).show();
   }
 
+  /**
+   * only SMB 1 supported apis (used jcifs.smb)
+   *
+   */
+
   @ReactMethod
   public void SMB1Init(
           final String clientId,
@@ -183,7 +188,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         try {
           if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(password)) {
             authentication = new NtlmPasswordAuthentication(workGroup, username, password);
-            authenticationPool.put(clientId, authentication);
+            authenticationPoolSMB1.put(clientId, authentication);
 
           }
         } catch (Exception e) {
@@ -243,7 +248,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
         try {
           SmbFile sFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           params.putString("serverURL", serverURL);
           if (authentication != null) {
@@ -294,7 +299,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             destinationPath = "/" + path + destinationPath;
           }
           SmbFile sFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             sFile = new SmbFile(serverURL + destinationPath, authentication);
@@ -401,8 +406,15 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               destinationPath = destinationPath + fileName;
             }
             //SmbFile srcFile;
-            NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+            NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
             String serverURL = serverURLPool.get(clientId);
+            if (TextUtils.isEmpty(serverURL)) {
+                statusParams.putBoolean("success", false);
+                statusParams.putString("errorCode", "1111");
+                statusParams.putString("message", " serverURL is null [for client "+clientId+"] !!");
+                callback.invoke(statusParams);
+                return;
+            }
             if (authentication != null) {
               srcFile = new SmbFile(serverURL + destinationPath, authentication);
             } else {
@@ -644,7 +656,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               destinationPathWithSeparator += "/" + fileName;
             }
             SmbFile destFilePath;
-            NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+            NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
             String serverURL = serverURLPool.get(clientId);
             if (authentication != null) {
               destFile = new SmbFile(serverURL + destinationPathWithSeparator, authentication);
@@ -821,7 +833,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             oldPath = oldPath + oldFileName;
           }
           SmbFile oldSmbFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             oldSmbFile = new SmbFile(serverURL + oldPath, authentication);
@@ -915,7 +927,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             oldFullPath = oldFullPath + fileName;
           }
           SmbFile oldSmbFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             oldSmbFile = new SmbFile(serverURL + oldFullPath, authentication);
@@ -1013,7 +1025,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             fromFullPath = fromFullPath + fileName;
           }
           SmbFile fromSmbFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             fromSmbFile = new SmbFile(serverURL + fromFullPath, authentication);
@@ -1105,7 +1117,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             fullPath = "/" + newPath + fullPath;
           }
           SmbFile newSmbFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             newSmbFile = new SmbFile(serverURL + fullPath, authentication);
@@ -1165,7 +1177,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             fullTargetPath = fullTargetPath + targetPath;
           }
           SmbFile targetSmbFile;
-          NtlmPasswordAuthentication authentication = authenticationPool.get(clientId);
+          NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
           String serverURL = serverURLPool.get(clientId);
           if (authentication != null) {
             targetSmbFile = new SmbFile(serverURL + fullTargetPath, authentication);
@@ -1212,8 +1224,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
       //serverURLPool
       serverURLPool.remove(clientId);
-      //authenticationPool
-      authenticationPool.remove(clientId);
+      //authenticationPoolSMB1
+      authenticationPoolSMB1.remove(clientId);
 
       //uploadPool
       //get user's uploads then cancel all
