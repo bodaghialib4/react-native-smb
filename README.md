@@ -377,6 +377,33 @@ this.smbClient.list(
 );
 ```
 
+to download a file from smb server for created smbClient & cancel it
+```javascript
+this.smbClient.on(
+    'downloadProgress',
+    (data) => {
+        console.log('download progress data (on downloadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelDownload(data.downloadId);
+    },
+);
+
+this.smbClient.on(
+    'download',
+    (data) => {
+        console.log('download data (on download): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.download(
+    'from/path',//source path of file to download (in SMB server)
+    'to/path',//destination path to save downloaded file (in Android device)
+    'file.name',//the name of file to download
+    (data) => {//callback
+        console.log('download data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
 
 </details>
 
