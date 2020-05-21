@@ -404,6 +404,32 @@ this.smbClient.download(
 );
 ```
 
+to upload a file from android device local path to a path in SMB server
+```javascript
+this.smbClient.on(
+    'uploadProgress',
+    (data) => {
+        console.log('upload progress data (on uploadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelUpload(data.uploadId)
+    },
+);
+
+this.smbClient.on(
+    'upload',
+    (data) => {
+        console.log('upload data (on upload): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.upload(
+    'from/path',//source path of file to upload (in Android devic)
+    'to/path',//destination path to to upload (in SMB server)
+    'file.name',//the name of file to upload
+    (data) => {//callback
+        console.log('upload data (callback): ' + JSON.stringify(data));
+    },
+);
+```
 
 </details>
 

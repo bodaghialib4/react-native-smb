@@ -36,6 +36,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -1724,6 +1725,235 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     try {
       if (downloadPool.containsKey(downloadId))
         downloadPool.put(downloadId, "cancel");
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+    }
+  }
+
+  @ReactMethod
+  public void upload(
+          final String clientId,
+          final String uploadId,
+          @Nullable final String fromPath,
+          @Nullable final String toPath,
+          final String fileName,
+          final Callback callback
+  ) {
+    uploadThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "upload");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("uploadId", uploadId);
+        statusParams.putString("fileName", fileName + "");
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        if(!isConnected(clientId)){
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1010");
+          statusParams.putString("message", "connection disconnected!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        com.hierynomus.smbj.share.File destFile = null;
+        String destinationFilePath = "";
+        File srcFile = null;
+        //SmbFile destFile = null;
+        boolean isUploadInitialized = false;
+
+        try {
+          if (checkReadExternalStoragePermissions()) {
+            String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+            String sourcePathWithSeparator = "";
+            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+              sourcePathWithSeparator = fromPath + File.separator;
+            }
+            srcFile = new File(basePath + File.separator + sourcePathWithSeparator + fileName);
+
+            if (srcFile.isDirectory()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is a directory!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.exists()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is not exist!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            if (!srcFile.canRead()) {
+              statusParams.putBoolean("success", false);
+              statusParams.putString("errorCode", "1111");
+              statusParams.putString("message", " no permission  to read [" + sourcePathWithSeparator + fileName + "]!!");
+              callback.invoke(statusParams);
+              return;
+            }
+            //source file initialized successfully, now initializing destination file
+
+            String destinationParentPath = "";
+
+            if (toPath != null && !TextUtils.isEmpty(toPath)) {
+              destinationParentPath = toPath.replace("/","\\");
+              if(!destinationParentPath.endsWith("\\"))destinationParentPath = destinationParentPath + "\\";
+            }
+            if (fileName != null && !TextUtils.isEmpty(fileName)) {
+              destinationFilePath = destinationParentPath + fileName;
+            }
+
+            if(!share.folderExists(destinationParentPath)) {
+              String[] separatedPath = destinationParentPath.split("\\\\");
+              String madePath = "";
+              for (int i = 0; i < separatedPath.length; i++) {
+                if (!share.folderExists(madePath + separatedPath[i]))
+                  share.mkdir(madePath + separatedPath[i]);
+                madePath += separatedPath[i] + "\\";
+              }
+            }
+
+            destFile = share.openFile(destinationFilePath,
+                    EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL,
+                    SMB2CreateDisposition.FILE_OPEN_IF, null);
+
+            //destination file initialized successfully
+
+            statusParams.putString("destPath", "" + share.getSmbPath() + '\\' + destinationFilePath);
+            statusParams.putBoolean("success", true);
+            statusParams.putString("errorCode", "0000");
+            statusParams.putString("message", "upload initialized successfully!!! ");
+
+            isUploadInitialized = true;
+
+          } else {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "no permission to access device storage!!! ");
+          }
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "upload exception error: " + e.getMessage());
+        }
+
+        callback.invoke(statusParams);
+
+        if (isUploadInitialized && srcFile != null && destFile != null) {
+          try {
+            BufferedInputStream inBuf = new BufferedInputStream(new FileInputStream(srcFile));
+            final BufferedOutputStream smbFileOutputStream = new BufferedOutputStream(destFile.getOutputStream());
+
+            // write the bits from Instream to Outstream
+            //byte[] buf = new byte[16 * 1024 * 1024];
+            byte[] buf = new byte[100 * 1024];
+            int len;
+            long totalSize = srcFile.length();
+            long uploadedSize = 0;
+
+            List<String> uploadIds = clientUploadsPool.remove(clientId);
+            if (uploadIds == null || uploadIds.isEmpty()) uploadIds = new ArrayList<String>();
+            if (uploadIds.indexOf(uploadId) == -1) uploadIds.add(uploadId);
+            clientUploadsPool.put(clientId, uploadIds);
+
+            uploadPool.put(uploadId, "inProgress");
+            String uploadStatus = "inProgress";
+
+            while ((len = inBuf.read(buf)) > 0) {
+              uploadStatus = uploadPool.get(uploadId);
+              if (uploadStatus == null) uploadStatus = "cancel";
+
+              smbFileOutputStream.write(buf, 0, len);
+              uploadedSize += len;
+
+              boolean isCompleted = totalSize == uploadedSize;
+              String message = "uploading";
+              String status = "uploading";
+
+              if (isCompleted) {
+                message = "upload completed successfully.";
+                status = "completed";
+              } else if (uploadStatus == "cancel") {
+                message = "upload canceled";
+                status = "canceled";
+              }
+
+              WritableMap params = Arguments.createMap();
+              params.putString("name", "uploadProgress");
+              params.putBoolean("success", true);
+              params.putBoolean("completed", isCompleted);
+              params.putString("errorCode", "0000");
+              params.putString("message", message);
+              params.putString("status", status);
+              params.putString("clientId", clientId);
+              params.putString("uploadId", uploadId);
+              params.putString("fileName", srcFile.getName() + "");
+              params.putString("fromPath", fromPath + "");
+              params.putString("toPath", toPath + "");
+              params.putString("srcPath", "" + srcFile.getAbsolutePath());
+              params.putString("destPath", "" + share.getSmbPath() + '\\' + destinationFilePath);
+              params.putString("totalSize", totalSize + "");
+              params.putString("uploadedSize", uploadedSize + "");
+              sendEvent(reactContext, "SMBUploadProgress", params);
+
+              if (uploadStatus == "cancel") {
+                break;
+              }
+            }
+            inBuf.close();
+            smbFileOutputStream.flush();
+            smbFileOutputStream.close();
+
+            if (uploadStatus == "cancel") {
+              share.rm(destinationFilePath);
+              //destFile.delete();
+            }
+
+          } catch (Exception e) {
+            // Output the stack trace.
+            e.printStackTrace();
+            WritableMap params = Arguments.createMap();
+            params.putString("name", "uploadProgress");
+            params.putString("clientId", clientId);
+            params.putString("uploadId", uploadId);
+            params.putString("fileName", srcFile.getName() + "");
+            params.putString("fromPath", fromPath + "");
+            params.putString("toPath", toPath + "");
+            params.putString("srcPath", "" + srcFile.getAbsolutePath());
+            params.putString("destPath", "" + share.getSmbPath() + '\\' + destinationFilePath);
+            params.putBoolean("success", false);
+            params.putString("errorCode", "0101");
+            params.putString("message", "upload progress exception error: " + e.getMessage());
+            sendEvent(reactContext, "SMBUploadProgress", params);
+          }
+          uploadPool.remove(uploadId);
+
+          List<String> uploadIds = clientUploadsPool.remove(clientId);
+
+          if (uploadIds != null && !uploadIds.isEmpty()) {
+            uploadIds.remove(uploadId);
+            clientUploadsPool.put(clientId, uploadIds);
+          }
+        }
+      }
+    });
+  }
+
+  @ReactMethod
+  public void cancelUpload(
+          final String clientId,
+          final String uploadId
+  ) {
+    try {
+      if (uploadPool.containsKey(uploadId))
+        uploadPool.put(uploadId, "cancel");
     } catch (Exception e) {
       // Output the stack trace.
       e.printStackTrace();
