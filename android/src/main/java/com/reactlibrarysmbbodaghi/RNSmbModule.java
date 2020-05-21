@@ -12,6 +12,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
@@ -2596,5 +2597,100 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     });
   }
 
+  @ReactMethod
+  public void disconnect(
+          final String clientId,
+          final Callback callback
+  ) {
+    WritableMap statusParams = Arguments.createMap();
+    statusParams.putString("name", "disconnect");
+    statusParams.putString("clientId", clientId);
+    try {
+
+      //serverURLPool
+      serverURLPool.remove(clientId);
+      //authenticationPool
+      authenticationPool.remove(clientId);
+      //diskSharePool
+      diskSharePool.remove(clientId);
+      //connectionPool
+      connectionPool.remove(clientId);
+
+      //uploadPool
+      //get user's uploads then cancel all
+
+      List<String> uploadIds = clientUploadsPool.get(clientId);
+      if (uploadIds != null && !uploadIds.isEmpty()) {
+        for (int i = 0; i < uploadIds.size(); i++) {
+          uploadPool.remove(uploadIds.get(i));
+        }
+      }
+
+      clientUploadsPool.remove(clientId);
+
+      //downloadPool
+      //get user's downloads then cancel all
+
+      List<String> downloadIds = clientDownloadsPool.get(clientId);
+      if (downloadIds != null && !downloadIds.isEmpty()) {
+        for (int i = 0; i < downloadIds.size(); i++) {
+          downloadPool.remove(downloadIds.get(i));
+        }
+      }
+
+      clientDownloadsPool.remove(clientId);
+
+      statusParams.putBoolean("success", true);
+      statusParams.putString("errorCode", "0000");
+      statusParams.putString("message", "client [" + clientId + "] disconnected successfully");
+
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      statusParams.putBoolean("success", false);
+      statusParams.putString("errorCode", "0101");
+      statusParams.putString("message", "disconnect exception error[" + clientId + "]: " + e.getMessage());
+    }
+    callback.invoke(statusParams);
+  }
+
+
+  @ReactMethod
+  public void test(String workGroup, String ip, String port, String username, String password, String sharedFolder, String fileName) {
+    try {
+
+
+
+      if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(password) && !TextUtils.isEmpty(ip)) {
+        SMBClient client = new SMBClient();
+
+        Connection connection;
+        if (TextUtils.isEmpty(port)) {
+          connection = client.connect("" + ip);
+        } else {
+          connection = client.connect("" + ip, Integer.parseInt("" + port));
+
+        }
+        AuthenticationContext ac = new AuthenticationContext("" + username, password.toCharArray(), "" + workGroup);
+        Session session = connection.authenticate(ac);
+
+
+        if (!TextUtils.isEmpty(sharedFolder)) {
+          DiskShare share = (DiskShare) session.connectShare("" + sharedFolder);
+          FileAllInformation share2 = share.getFileInformation("/multimedia");
+          com.hierynomus.smbj.share.File file;
+          //file.
+          //              for (FileIdBothDirectoryInformation f : share.list("FOLDER", "*.TXT")) {
+          for (FileIdBothDirectoryInformation f : share.list("", "*")) {
+            System.out.println("File : " + f.getFileName());
+          }
+        }
+      }
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      String message = " error in testing SMB";
+    }
+  }
 
 }

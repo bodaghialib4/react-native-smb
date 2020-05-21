@@ -587,13 +587,22 @@ this.smbClient.deleteFolder(
     },
 );
 ```
-
+to disconnect a client from server
+```javascript 
+this.smbClient.on( 
+    'disconnect',
+    (data) => { 
+        console.log('disconnect data (on disconnect): ' + JSON.stringify(data));
+        this.smbClient = null
+    }, 
+); 
+ 
+this.smbClient.disconnect(
+    (data) => {//callback 
+        console.log('disconnect data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+````
 </details>
 
-```javascript
-import SMBClient from 'react-native-smb';
-
-// TODO: What to do with the module?
-RNSmb;
-```
 
