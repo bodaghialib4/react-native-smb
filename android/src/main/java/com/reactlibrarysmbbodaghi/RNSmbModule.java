@@ -10,7 +10,9 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
@@ -1438,5 +1440,88 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     if(share != null && share.folderExists(filePath)) return true;
     else return false;
   }
+
+  @ReactMethod
+  public void list(
+          final String clientId,
+          @Nullable final String path,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap params = Arguments.createMap();
+        params.putString("name", "list");
+        params.putString("clientId", clientId);
+
+        if(!isConnected(clientId)){
+          params.putBoolean("success", false);
+          params.putString("errorCode", "1010");
+          params.putString("message", "connection disconnected!!! ");
+          callback.invoke(params);
+          return;
+        }
+
+        try {
+          String destinationPath = "";
+          if (path != null && !TextUtils.isEmpty(path)) {
+//            destinationPath = "/" + path + destinationPath;
+            destinationPath = "" + path;
+          }
+
+          DiskShare share = diskSharePool.get(clientId);
+          if(share == null){
+            params.putBoolean("success", false);
+            params.putString("errorCode", "1111");
+            params.putString("message", "connection error!!! ");
+            callback.invoke(params);
+            return;
+          }
+          if(!share.folderExists(destinationPath)){
+            params.putBoolean("success", false);
+            params.putString("errorCode", "1111");
+            params.putString("message", "path not exist!!! ");
+            callback.invoke(params);
+            return;
+          }
+
+          WritableArray list = Arguments.createArray();
+          for (FileIdBothDirectoryInformation f : share.list("" + destinationPath, "*")) {
+            System.out.println("File : " + f.getFileName());
+
+            WritableMap currentFile = Arguments.createMap();
+            currentFile.putString("name", f.getFileName());
+            currentFile.putString("shortName", f.getShortName());
+
+            //boolean
+            currentFile.putBoolean("isDirectory", EnumWithValue.EnumUtils.isSet(f.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY));
+            currentFile.putBoolean("readOnly", EnumWithValue.EnumUtils.isSet(f.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_READONLY));
+            currentFile.putBoolean("hidden", EnumWithValue.EnumUtils.isSet(f.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_HIDDEN));
+
+            //long
+            currentFile.putString("createTime", String.valueOf(f.getCreationTime()));
+            currentFile.putString("lastModified", String.valueOf(f.getLastWriteTime()));
+            currentFile.putString("size", String.valueOf(f.getEndOfFile()));
+
+            list.pushMap(currentFile);
+          }
+
+          params.putBoolean("success", true);
+          params.putString("errorCode", "0000");
+          params.putString("message", "path [" + path + "] list successfully.");
+          params.putArray("list", list);
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          params.putBoolean("success", false);
+          params.putString("errorCode", "0101");
+          params.putString("message", "exception error: " + e.getMessage());
+        }
+        callback.invoke(params);
+      }
+    });
+  }
+
 
 }

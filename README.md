@@ -359,6 +359,25 @@ if(folderExist){
 }
 ```
 
+
+list files and folders in given path of smb server for created smbClient
+```javascript
+this.smbClient.on(
+    'list',
+    (data) => {
+        console.log('list data (on list): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.list(
+    'target/path/to/list',//the path to list files and folders
+    (data) => {//callback
+        console.log('list data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+
 </details>
 
 ```javascript
