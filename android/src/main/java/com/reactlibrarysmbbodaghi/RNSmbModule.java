@@ -1419,6 +1419,24 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     else return false;
   }
 
+  @ReactMethod
+  public boolean isFileExist(
+          final String clientId,
+          final String filePath
+  ) {
+    DiskShare share = diskSharePool.get(clientId);
+    if(share != null && share.fileExists(filePath)) return true;
+    else return false;
+  }
 
+@ReactMethod
+  public boolean isFolderExist(
+          final String clientId,
+          final String filePath
+  ) {
+    DiskShare share = diskSharePool.get(clientId);
+    if(share != null && share.folderExists(filePath)) return true;
+    else return false;
+  }
 
 }

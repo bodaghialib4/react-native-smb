@@ -337,6 +337,34 @@ if(isConnected){
 }
 ```
 
+
+check file exist on server
+```javascript
+let fileExist = this.smbClient.isFileExist();
+if(fileExist){
+    console.log('file exist in server. ' );
+}else{
+    console.log('file not exist in server. ' );
+}
+```
+
+
+check folder exist on server
+```javascript
+let folderExist = this.smbClient.isFolderExist();
+if(folderExist){
+    console.log('folder exist in server. ' );
+}else{
+    console.log('folder not exist in server. ' );
+}
+```
+
 </details>
 
+```javascript
+import SMBClient from 'react-native-smb';
+
+// TODO: What to do with the module?
+RNSmb;
+```
 

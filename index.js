@@ -80,6 +80,16 @@ class SMBClient {
         return RNSmb.isConnected(this.clientId);
     }
 
+    //smbIsFileExist
+    isFileExist(filePath) {
+        return RNSmb.isFileExist(this.clientId, path);
+    }
+
+    //smbIsFolderExist
+    isFolderExist(folderPath) {
+        return RNSmb.isFolderExist(this.clientId, path);
+    }
+
     //smbList
     list(path, callback) {
         //list files & folders
