@@ -2473,4 +2473,128 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     });
   }
 
+  @ReactMethod
+  public void deleteFile(
+          final String clientId,
+          @Nullable final String path,
+          final String fileName,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "deleteFile");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("path", path + "");
+        statusParams.putString("fileName", fileName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null) {
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String filePATH = "";
+          if (path != null && !TextUtils.isEmpty(path)) {
+            filePATH = path.replace("/","\\");
+            if(!filePATH.endsWith("\\"))filePATH = filePATH + "\\";
+
+          }
+
+          if (fileName != null && !TextUtils.isEmpty(fileName)) {
+            filePATH = filePATH + fileName;
+          }
+          if(!share.fileExists(filePATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "file not exist in the path!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+          share.rm(filePATH);
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "file successfully deleted[" + filePATH + "]");
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "delete file exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
+  @ReactMethod
+  public void deleteFolder(
+          final String clientId,
+          @Nullable final String path,
+          final String folderName,
+          final Boolean recursive,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "deleteFolder");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("path", path + "");
+        statusParams.putString("folderName", folderName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null) {
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String folderPATH = "";
+          if (path != null && !TextUtils.isEmpty(path)) {
+            folderPATH = path.replace("/","\\");
+            if(!folderPATH.endsWith("\\"))folderPATH = folderPATH + "\\";
+          }
+
+          if (folderName != null && !TextUtils.isEmpty(folderName)) {
+            folderPATH = folderPATH + folderName;
+          }
+
+          if(!share.folderExists(folderPATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "folder not exist in the path!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+          share.rmdir(folderPATH,recursive);
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "folder successfully deleted[" + folderPATH + "]");
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "delete folder directory exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
+
 }

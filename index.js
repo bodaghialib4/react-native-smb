@@ -265,11 +265,29 @@ class SMBClient {
         );
     }
 
-    //smbRm
-    delete(path, callback) {
-        RNSmb.delete(
+    //smbDeleteFile
+    deleteFile(path, fileName, callback) {
+        RNSmb.deleteFile(
             this.clientId,
-            path,// path of a file or directory in smb server that must delete
+            path,// path of a file in smb server that must delete
+            fileName, //name of file
+            (data) => {
+                //console.log('delete data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+    //smbDeleteFolder
+    deleteFolder(path,FolderName,recursive, callback) {
+        RNSmb.deleteFolder(
+            this.clientId,
+            path,// path of folder in smb server that must delete
+            FolderName,//name of folder
+            recursive,
             (data) => {
                 //console.log('delete data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {

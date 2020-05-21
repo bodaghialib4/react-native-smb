@@ -543,10 +543,47 @@ this.smbClient.on(
 );
 
 this.smbClient.makeDir(
-    'path/to/make', //path of new directory in smb server
+    'path/to/make/folder', //path of new directory in smb server
     'folderName', //the name of folder to create 
     (data) => {//callback
         console.log('makeDir data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to delete a file at the SMB server side
+```javascript
+this.smbClient.on(
+    'deleteFile',
+    (data) => {
+        console.log('deleteFile data (on deleteFile): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.deleteFile(
+    'path/to/delete/a/file', //path of a file or directory in smb server to delete
+    'file.name', //the name of file to delete 
+    (data) => {//callback
+        console.log('deleteFile data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to delete a folder at the SMB server side
+```javascript
+this.smbClient.on(
+    'deleteFolder',
+    (data) => {
+        console.log('deleteFolder data (on deleteFolder): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.deleteFolder(
+    'path/to/delete/a/folder', //path of a file or directory in smb server to delete
+    'folderName', //the name of folder to delete 
+    true, //recursive (delete folder and all its subfolders & subfiles)
+    (data) => {//callback
+        console.log('deleteFolder data (callback): ' + JSON.stringify(data));
     },
 );
 ```
