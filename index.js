@@ -74,18 +74,10 @@ class SMBClient {
         );
     }
 
-    //smbTestConnection
-    testConnection(callback) {
+    //smbIsConnection
+    isConnected(callback) {
         //test connection
-        RNSmb.testConnection(this.clientId,
-            (data) => {
-                //console.log('testConnection data: ' + JSON.stringify(data));
-                if (callback && typeof callback === "function") {
-                    callback(data);
-                }
-                this._handleEvent(data);
-            }
-        );
+        return RNSmb.isConnected(this.clientId);
     }
 
     //smbList

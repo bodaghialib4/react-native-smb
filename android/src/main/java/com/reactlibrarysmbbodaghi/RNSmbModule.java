@@ -418,11 +418,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             NtlmPasswordAuthentication authentication = authenticationPoolSMB1.get(clientId);
             String serverURL = serverURLPool.get(clientId);
             if (TextUtils.isEmpty(serverURL)) {
-              statusParams.putBoolean("success", false);
-              statusParams.putString("errorCode", "1111");
-              statusParams.putString("message", " serverURL is null [for client "+clientId+"] !!");
-              callback.invoke(statusParams);
-              return;
+                statusParams.putBoolean("success", false);
+                statusParams.putString("errorCode", "1111");
+                statusParams.putString("message", " serverURL is null [for client "+clientId+"] !!");
+                callback.invoke(statusParams);
+                return;
             }
             if (authentication != null) {
               srcFile = new SmbFile(serverURL + destinationPath, authentication);
@@ -1409,5 +1409,16 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
       }
     });
   }
+
+  @ReactMethod
+  public boolean isConnected(
+          final String clientId
+  ) {
+    Connection connection = connectionPool.get(clientId);
+    if(connection != null && connection.isConnected()) return true;
+    else return false;
+  }
+
+
 
 }

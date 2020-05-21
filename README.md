@@ -277,6 +277,13 @@ this.smbClient.disconnect(
 </details>
 
 
+
+
+
+
+
+
+
 ### For SMB version 2&3:
 <details>
   <summary>SMB 2&3 details</summary>
@@ -320,12 +327,16 @@ this.smbClient.on(
 ```
 
 
+check is connected to server
+```javascript
+let isConnected = this.smbClient.isConnected();
+if(isConnected){
+    console.log('SMBClient is connected. ' );
+}else{
+    console.log('SMBClient is disconnected. ' );
+}
+```
+
 </details>
 
-```javascript
-import SMBClient from 'react-native-smb';
-
-// TODO: What to do with the module?
-RNSmb;
-```
 
