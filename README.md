@@ -513,6 +513,26 @@ this.smbClient.folderMoveTo(
 ); 
 ``` 
 
+to copy a file at the SMB server side
+```javascript
+this.smbClient.on(
+    'fileCopyTo',
+    (data) => {
+        console.log('fileCopyTo data (on fileCopyTo): ' + JSON.stringify(data));
+    }, 
+); 
+
+this.smbClient.fileCopyTo(
+    'from/path', //source path of file to move (in SMB server) 
+    'to/path', //destination path to to move (in SMB server) 
+    'file.name', //the name of file to move 
+    false, //replace if exist 
+    (data) => {//callback 
+        console.log('fileCopyTo data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
 </details>
 
 ```javascript

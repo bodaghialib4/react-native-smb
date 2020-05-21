@@ -2307,4 +2307,106 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
 
+  @ReactMethod
+  public void fileCopyTo(
+          final String clientId,
+          @Nullable final String fromPath,
+          @Nullable final String toPath,
+          final String fileName,
+          final Boolean replaceIfExist,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "fileCopyTo");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("fromPath", fromPath + "");
+        statusParams.putString("toPath", toPath + "");
+        statusParams.putString("fileName", fileName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null){
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String fromFilePATH = "";
+          String toFilePATH = "";
+          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
+            fromFilePATH = fromPath.replace("/","\\");
+            if(!fromFilePATH.endsWith("\\"))fromFilePATH = fromFilePATH + "\\";
+
+          }
+          if (toPath != null && !TextUtils.isEmpty(toPath)) {
+            toFilePATH = toPath.replace("/","\\");
+            if(!toFilePATH.endsWith("\\"))toFilePATH = toFilePATH + "\\";
+          }
+
+          if (fileName != null && !TextUtils.isEmpty(fileName)) {
+            fromFilePATH = fromFilePATH + fileName;
+            toFilePATH = toFilePATH + fileName;
+          }
+
+          if(!share.fileExists(fromFilePATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "file not exist!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+          if(share.fileExists(toFilePATH) && !replaceIfExist) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "file exist in destination path!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+          com.hierynomus.smbj.share.File fileFrom = share.openFile(
+                  fromFilePATH,
+                  EnumSet.of(AccessMask.GENERIC_READ),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  SMB2CreateDisposition.FILE_OPEN,
+                  null);
+
+          SMB2CreateDisposition smb2CreateDisposition =SMB2CreateDisposition.FILE_CREATE;
+          if(replaceIfExist) smb2CreateDisposition =SMB2CreateDisposition.FILE_OVERWRITE_IF;
+
+          com.hierynomus.smbj.share.File fileTo = share.openFile(
+                  toFilePATH,
+                  EnumSet.of(AccessMask.GENERIC_WRITE),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  smb2CreateDisposition,
+                  null);
+
+          fileFrom.remoteCopyTo(fileTo);
+          fileFrom.close();
+          fileTo.close();
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "file successfully copied[" + fromFilePATH + " -> " + toFilePATH + "]");
+
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "file copy exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
+
 }

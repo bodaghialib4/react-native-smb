@@ -231,13 +231,14 @@ class SMBClient {
         );
     }
 
-    //smbCopyTo
-    copyTo(fromPath, toPath, fileName, callback) {
-        RNSmb.copyTo(
+    //smbFileCopyTo
+    fileCopyTo(fromPath, toPath, fileName, replaceIfExist, callback) {
+        RNSmb.fileCopyTo(
             this.clientId,
             fromPath,//file path in smb server
             toPath,//old file name in smb server
             fileName,//new file name
+            replaceIfExist,//replace if exist
             (data) => {
                 //console.log('copyTo data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {
