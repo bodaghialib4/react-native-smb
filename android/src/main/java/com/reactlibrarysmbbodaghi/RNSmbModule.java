@@ -2445,10 +2445,11 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           if (folderName != null && !TextUtils.isEmpty(folderName)) {
             folderPATH = folderPATH + folderName;
           }
-          if(share.fileExists(folderPATH)) {
+
+          if(share.folderExists(folderPATH)) {
             statusParams.putBoolean("success", false);
             statusParams.putString("errorCode", "1111");
-            statusParams.putString("message", "file exist in the path!!! ");
+            statusParams.putString("message", "folder exist in the path!!! ");
             callback.invoke(statusParams);
             return;
           }
