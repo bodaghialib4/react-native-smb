@@ -25,14 +25,14 @@ iOS not supported
   - Add `import com.reactlibrary.RNReactNativeSmbPackage;` to the imports at the top of the file
   - Add `new RNReactNativeSmbPackage()` to the list returned by the `getPackages()` method
 2. Append the following lines to `android/settings.gradle`:
-  	```
-  	include ':react-native-smb'
-  	project(':react-native-smb').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-smb/android')
-  	```
+    ```
+    include ':react-native-smb'
+    project(':react-native-smb').projectDir = new File(rootProject.projectDir,  '../node_modules/react-native-smb/android')
+    ```
 3. Insert the following lines inside the dependencies block in `android/app/build.gradle`:
-  	```
+    ```
       compile project(':react-native-smb')
-  	```
+    ```
 
 
 ## Usage
@@ -427,6 +427,46 @@ this.smbClient.upload(
     'file.name',//the name of file to upload
     (data) => {//callback
         console.log('upload data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to rename a file at a path in SMB server
+```javascript
+this.smbClient.on(
+    'renameFile',
+    (data) => {
+        console.log('rename file data (on renameFile): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.renameFile(
+    'path/of/file', //a path of file to rename in SMB server
+    'old.name', //old file name
+    'new.name', //new file name
+    false, //replace if exist
+    (data) => {//callback
+        console.log('rename file data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to rename a folder at a path in SMB server
+```javascript
+this.smbClient.on(
+    'renameFolder',
+    (data) => {
+        console.log('rename folder data (on renameFolder): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.renameFolder(
+    'path/of/file', //a path of file to rename in SMB server
+    'old.name', //old file name
+    'new.name', //new file name
+    false, //replace if exist
+    (data) => {//callback
+        console.log('rename folder data (callback): ' + JSON.stringify(data));
     },
 );
 ```

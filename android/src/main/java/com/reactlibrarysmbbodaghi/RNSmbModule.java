@@ -1960,5 +1960,180 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     }
   }
 
+  @ReactMethod
+  public void renameFile(
+          final String clientId,
+          @Nullable final String path,
+          final String oldFileName,
+          final String newFileName,
+          final Boolean replaceIfExist,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "renameFile");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("path", path + "");
+        statusParams.putString("oldFileName", oldFileName + "");
+        statusParams.putString("newFileName", newFileName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null){
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String targetPath = "";
+          String oldFilePATH = oldFileName;
+          String newFilePATH = newFileName;
+          if (path != null && !TextUtils.isEmpty(path)) {
+            targetPath = path.replace("/","\\");
+            if(!targetPath.endsWith("\\"))targetPath = targetPath + "\\";
+
+          }
+          if (oldFileName != null && !TextUtils.isEmpty(oldFileName)) {
+            oldFilePATH = targetPath + oldFileName;
+          }
+          if (newFileName != null && !TextUtils.isEmpty(newFileName)) {
+            newFilePATH = targetPath + newFileName;
+          }
+
+          if(!share.fileExists(oldFilePATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "file not exist!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+          if(share.fileExists(newFilePATH) && !replaceIfExist) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "new file name exist!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+          com.hierynomus.smbj.share.File renameFile = share.openFile(
+                  oldFilePATH,
+                  EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  SMB2CreateDisposition.FILE_OPEN,
+                  null);
+
+          renameFile.rename(newFilePATH, replaceIfExist);
+          renameFile.close();
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "file successfully renamed[" + oldFileName + " -> " + newFileName + "]");
+
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "file rename exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
+  @ReactMethod
+  public void renameFolder(
+          final String clientId,
+          @Nullable final String path,
+          final String oldFolderName,
+          final String newFolderName,
+          final Boolean replaceIfExist,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "renameFolder");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("path", path + "");
+        statusParams.putString("oldFolderName", oldFolderName + "");
+        statusParams.putString("newFolderName", newFolderName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null){
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String targetPath = "";
+          String oldFolderPATH = oldFolderName;
+          String newFolderPATH = newFolderName;
+          if (path != null && !TextUtils.isEmpty(path)) {
+            targetPath = path.replace("/","\\");
+            if(!targetPath.endsWith("\\"))targetPath = targetPath + "\\";
+
+          }
+          if (oldFolderName != null && !TextUtils.isEmpty(oldFolderName)) {
+            oldFolderPATH = targetPath + oldFolderName;
+          }
+          if (newFolderName != null && !TextUtils.isEmpty(newFolderName)) {
+            newFolderPATH = targetPath + newFolderName;
+          }
+
+          if(!share.folderExists(oldFolderPATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "folder not exist!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+          if(share.folderExists(newFolderPATH) && !replaceIfExist) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "new folder name exist!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+
+          com.hierynomus.smbj.share.Directory renameFolder = share.openDirectory(
+                  oldFolderPATH,
+                  EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  SMB2CreateDisposition.FILE_OPEN,
+                  null);
+
+          renameFolder.rename(newFolderPATH, replaceIfExist);
+          renameFolder.close();
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "folder successfully renamed["+oldFolderName+ " -> " + newFolderName + "]");
+
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "folder rename exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
 
 }

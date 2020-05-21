@@ -159,13 +159,32 @@ class SMBClient {
         RNSmb.cancelUpload(this.clientId, uploadId);
     }
 
-    //smbRename
-    rename(path, oldName, newName, callback) {
-        RNSmb.rename(
+    //smbRenameFile
+    renameFile(path, oldName, newName, replaceIfExist, callback) {
+        RNSmb.renameFile(
             this.clientId,
             path,//file path in smb server
             oldName,//old file name
             newName,//new file name
+            replaceIfExist,
+            (data) => {
+                //console.log('rename data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+    //smbRenameFolder
+    renameFolder(path, oldName, newName, replaceIfExist, callback) {
+        RNSmb.renameFolder(
+            this.clientId,
+            path,//file path in smb server
+            oldName,//old file name
+            newName,//new file name
+            replaceIfExist,
             (data) => {
                 //console.log('rename data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {
