@@ -533,6 +533,24 @@ this.smbClient.fileCopyTo(
 );
 ```
 
+to make a directory at the SMB server side
+```javascript
+this.smbClient.on(
+    'makeDir',
+    (data) => {
+        console.log('makeDir data (on makeDir): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.makeDir(
+    'path/to/make', //path of new directory in smb server
+    'folderName', //the name of folder to create 
+    (data) => {//callback
+        console.log('makeDir data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
 </details>
 
 ```javascript

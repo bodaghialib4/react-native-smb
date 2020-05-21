@@ -250,10 +250,11 @@ class SMBClient {
     }
 
     //smbMkdir
-    makeDir(newPath, callback) {
+    makeDir(path,newFolderName, callback) {
         RNSmb.makeDir(
             this.clientId,
-            newPath,// path of new directory in smb server
+            path,// path of new directory in smb server
+            newFolderName,
             (data) => {
                 //console.log('makeDir data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {

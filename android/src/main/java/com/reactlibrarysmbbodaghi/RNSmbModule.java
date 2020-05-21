@@ -2409,4 +2409,67 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
 
+  @ReactMethod
+  public void makeDir(
+          final String clientId,
+          @Nullable final String path,
+          final String folderName,
+          final Callback callback
+  ) {
+    extraThreadPool.execute(new Runnable() {
+      @Override
+      public void run() {
+        WritableMap statusParams = Arguments.createMap();
+        statusParams.putString("name", "makeDir");
+        statusParams.putString("clientId", clientId);
+        statusParams.putString("path", path + "");
+        statusParams.putString("folderName", folderName + "");
+
+        DiskShare share = diskSharePool.get(clientId); //smbShare
+        if(share == null){
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1111");
+          statusParams.putString("message", "connection error!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
+
+        try {
+          String folderPATH = "";
+          if (path != null && !TextUtils.isEmpty(path)) {
+            folderPATH = path.replace("/","\\");
+            if(!folderPATH.endsWith("\\"))folderPATH = folderPATH + "\\";
+
+          }
+
+          if (folderName != null && !TextUtils.isEmpty(folderName)) {
+            folderPATH = folderPATH + folderName;
+          }
+          if(share.fileExists(folderPATH)) {
+            statusParams.putBoolean("success", false);
+            statusParams.putString("errorCode", "1111");
+            statusParams.putString("message", "file exist in the path!!! ");
+            callback.invoke(statusParams);
+            return;
+          }
+
+          share.mkdir(folderPATH);
+
+          statusParams.putBoolean("success", true);
+          statusParams.putString("errorCode", "0000");
+          statusParams.putString("message", "directory successfully created[" + folderPATH + "]");
+
+
+        } catch (Exception e) {
+          // Output the stack trace.
+          e.printStackTrace();
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "0101");
+          statusParams.putString("message", "make directory exception error: " + e.getMessage());
+        }
+        callback.invoke(statusParams);
+      }
+    });
+  }
+
 }
