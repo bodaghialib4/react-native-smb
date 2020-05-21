@@ -195,13 +195,32 @@ class SMBClient {
         );
     }
 
-    //smbMoveTo
-    moveTo(fromPath, toPath, fileName, callback) {
-        RNSmb.moveTo(
+    //smbFileMoveTo
+    fileMoveTo(fromPath, toPath, fileName, replaceIfExist, callback) {
+        RNSmb.fileMoveTo(
             this.clientId,
             fromPath,//file path in smb server
             toPath,//old file name
             fileName,//new file name
+            replaceIfExist,//replace if exist
+            (data) => {
+                //console.log('moveTo data: ' + JSON.stringify(data));
+                if (callback && typeof callback === "function") {
+                    callback(data);
+                }
+                this._handleEvent(data);
+            }
+        );
+    }
+
+    //smbFolderMoveTo
+    folderMoveTo(fromPath, toPath, fileName, replaceIfExist, callback) {
+        RNSmb.folderMoveTo(
+            this.clientId,
+            fromPath,//file path in smb server
+            toPath,//old file name
+            fileName,//new file name
+            replaceIfExist,//replace if exist
             (data) => {
                 //console.log('moveTo data: ' + JSON.stringify(data));
                 if (callback && typeof callback === "function") {

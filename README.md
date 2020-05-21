@@ -451,6 +451,7 @@ this.smbClient.renameFile(
 );
 ```
 
+
 to rename a folder at a path in SMB server
 ```javascript
 this.smbClient.on(
@@ -470,6 +471,47 @@ this.smbClient.renameFolder(
     },
 );
 ```
+
+
+to move a file at the SMB server side
+```javascript 
+this.smbClient.on( 
+    'fileMoveTo', 
+    (data) => { 
+        console.log('fileMoveTo data (on fileMoveTo): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.fileMoveTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    false, //replace if exist
+    (data) => {//callback
+        console.log('fileMoveTo data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+``` 
+
+to move a folder at the SMB server side
+```javascript 
+this.smbClient.on( 
+    'folderMoveTo', 
+    (data) => { 
+        console.log('folderMoveTo data (on folderMoveTo): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.folderMoveTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    false, //replace if exist
+    (data) => {//callback
+        console.log('folderMoveTo data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+``` 
 
 </details>
 
