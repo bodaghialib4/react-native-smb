@@ -349,23 +349,58 @@ this.smbClient.connectionStatus(
 
 check file exist on server
 ```javascript
-let fileExist = this.smbClient.isFileExist();
-if(fileExist){
-    console.log('file exist in server. ' );
-}else{
-    console.log('file not exist in server. ' );
-}
+this.smbClient.on(
+    'isFileExist',
+    (data) => {
+        console.log('isFileExist data (on isFileExist): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('file exist in server. ' );
+        }else{
+            console.log('file not exist in server. ' );
+        }
+    },
+);
+
+this.smbClient.isFileExist(
+    'path/of/file',//the path to list files and folders
+    (data) => {//callback
+        console.log('isFileExist data (callback): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('file exist in server. ' );
+        }else{
+            console.log('file not exist in server. ' );
+        }
+    },
+);
 ```
 
 
 check folder exist on server
 ```javascript
-let folderExist = this.smbClient.isFolderExist();
-if(folderExist){
-    console.log('folder exist in server. ' );
-}else{
-    console.log('folder not exist in server. ' );
-}
+this.smbClient.on(
+    'isFolderExist',
+    (data) => {
+        console.log('isFolderExist data (on isFolderExist): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('folder exist in server. ' );
+        }else{
+            console.log('folder not exist in server. ' );
+        }
+    },
+);
+
+this.smbClient.isFolderExist(
+    'path/of/folder',//the path to list files and folders
+    (data) => {//callback
+        console.log('isFolderExist data (callback): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('folder exist in server. ' );
+        }else{
+            console.log('folder not exist in server. ' );
+        }
+    },
+);
+
 ```
 
 

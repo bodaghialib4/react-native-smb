@@ -1470,23 +1470,82 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public boolean isFileExist(
+  public void isFileExist(
           final String clientId,
-          final String filePath
+          final String filePath,
+          final Callback callback
   ) {
-    DiskShare share = diskSharePool.get(clientId);
-    if(share != null && share.fileExists(filePath)) return true;
-    else return false;
+
+    WritableMap params = Arguments.createMap();
+    params.putString("name", "isFileExist");
+    params.putString("clientId", clientId);
+    params.putString("filePath", filePath);
+
+    try {
+      DiskShare share = diskSharePool.get(clientId);
+      boolean isFileExist = false;
+
+      if (share != null && share.fileExists(filePath)) isFileExist = true;
+
+      if (!isFileExist) {
+        params.putBoolean("isExist", false);
+        params.putString("message", "file not exist!!! ");
+      } else {
+        params.putBoolean("isExist", true);
+        params.putString("message", "file exist!!! ");
+      }
+
+      params.putBoolean("success", true);
+      params.putString("errorCode", "0000");
+
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      params.putBoolean("success", false);
+      params.putString("errorCode", "0101");
+      params.putString("message", "exception error: " + e.getMessage());
+    }
+    callback.invoke(params);
   }
 
-@ReactMethod
-  public boolean isFolderExist(
+  @ReactMethod
+  public void isFolderExist(
           final String clientId,
-          final String filePath
+          final String folderPath,
+          final Callback callback
+
   ) {
-    DiskShare share = diskSharePool.get(clientId);
-    if(share != null && share.folderExists(filePath)) return true;
-    else return false;
+
+    WritableMap params = Arguments.createMap();
+    params.putString("name", "isFolderExist");
+    params.putString("clientId", clientId);
+    params.putString("folderPath", folderPath);
+
+    try {
+      DiskShare share = diskSharePool.get(clientId);
+      boolean isFolderExist = false;
+
+      if (share != null && share.folderExists(folderPath)) isFolderExist = true;
+
+      if (!isFolderExist) {
+        params.putBoolean("isExist", false);
+        params.putString("message", "folder not exist!!! ");
+      } else {
+        params.putBoolean("isExist", true);
+        params.putString("message", "folder exist!!! ");
+      }
+
+      params.putBoolean("success", true);
+      params.putString("errorCode", "0000");
+
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      params.putBoolean("success", false);
+      params.putString("errorCode", "0101");
+      params.putString("message", "exception error: " + e.getMessage());
+    }
+    callback.invoke(params);
   }
 
   @ReactMethod

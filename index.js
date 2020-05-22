@@ -87,13 +87,25 @@ class SMBClient {
     }
 
     //smbIsFileExist
-    isFileExist(filePath) {
-        return RNSmb.isFileExist(this.clientId, path);
+    isFileExist(filePath, callback) {
+        RNSmb.isFileExist(this.clientId, filePath, (data) => {
+            //console.log('isFileExist data: ' + JSON.stringify(data));
+            if (callback && typeof callback === "function") {
+                callback(data);
+            }
+            this._handleEvent(data);
+        });
     }
 
     //smbIsFolderExist
-    isFolderExist(folderPath) {
-        return RNSmb.isFolderExist(this.clientId, path);
+    isFolderExist(folderPath, callback) {
+        RNSmb.isFolderExist(this.clientId, folderPath, (data) => {
+            //console.log('isFolderExist data: ' + JSON.stringify(data));
+            if (callback && typeof callback === "function") {
+                callback(data);
+            }
+            this._handleEvent(data);
+        });
     }
 
     //smbList
