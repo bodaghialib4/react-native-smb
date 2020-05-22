@@ -25,21 +25,26 @@ iOS not supported
   - Add `import com.reactlibrary.RNReactNativeSmbPackage;` to the imports at the top of the file
   - Add `new RNReactNativeSmbPackage()` to the list returned by the `getPackages()` method
 2. Append the following lines to `android/settings.gradle`:
-  	```
-  	include ':react-native-smb'
-  	project(':react-native-smb').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-smb/android')
-  	```
+    ```
+    include ':react-native-smb'
+    project(':react-native-smb').projectDir = new File(rootProject.projectDir,  '../node_modules/react-native-smb/android')
+    ```
 3. Insert the following lines inside the dependencies block in `android/app/build.gradle`:
-  	```
+    ```
       compile project(':react-native-smb')
-  	```
+    ```
 
 
 ## Usage
 
+### For SMB version 1:
+<details>
+  <summary>SMB1 details</summary>
+  
+  
 import react-native-smb where want to use, 
 ```javascript
-import SMBClient from 'react-native-smb';
+import {SMB1Client} from 'react-native-smb';
 ```
 
 then create new SMBClient (and set connection properties)
@@ -269,12 +274,379 @@ this.smbClient.disconnect(
     },
 );
 ````
+</details>
 
 
+
+
+
+
+
+
+
+### For SMB version 2&3:
+<details>
+  <summary>SMB 2&3 details</summary>
+  
+  
+import react-native-smb where want to use,
 ```javascript
 import SMBClient from 'react-native-smb';
-
-// TODO: What to do with the module?
-RNSmb;
 ```
+
+then create new SMBClient (and set connection properties)
+```javascript
+this.smbClient = new SMBClient(
+    '0.0.0.0',//ip
+    '',//port
+    'sharedFolder',//sharedFolder,
+    'workGroup',//workGroup,
+    'username',//username,
+    'password',//password,
+    (data) => {//callback - can be null (not setting)
+        console.log('new SMBClient data (callback): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.on(
+    'connect',
+    (data) => {
+        console.log('new SMBClient data (on connect): ' + JSON.stringify(data));
+    },
+);
+```
+
+to catch all errors, set smbClient.on with "error" event name
+```javascript
+this.smbClient.on(
+    'error',
+    (data) => {
+        console.log('error in SMBClient (on error): ' + JSON.stringify(data));
+    },
+);
+```
+
+
+check is connected to server
+```javascript
+
+this.smbClient.on(
+    'connectionStatus',
+    (data) => {
+        console.log('connectionStatus data (on connectionStatus): ' + JSON.stringify(data));
+        console.log('connectionStatus is: ' +  data.status); //connect or disconnect
+    },
+);
+
+this.smbClient.connectionStatus(
+    (data) => {//callback
+        console.log('connectionStatus data (callback): ' + JSON.stringify(data));
+        console.log('connectionStatus is: ' +  data.status); //connect or disconnect
+    },
+);
+```
+
+
+check file exist on server
+```javascript
+this.smbClient.on(
+    'isFileExist',
+    (data) => {
+        console.log('isFileExist data (on isFileExist): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('file exist in server. ' );
+        }else{
+            console.log('file not exist in server. ' );
+        }
+    },
+);
+
+this.smbClient.isFileExist(
+    'path/of/file',//the path to list files and folders
+    (data) => {//callback
+        console.log('isFileExist data (callback): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('file exist in server. ' );
+        }else{
+            console.log('file not exist in server. ' );
+        }
+    },
+);
+```
+
+
+check folder exist on server
+```javascript
+this.smbClient.on(
+    'isFolderExist',
+    (data) => {
+        console.log('isFolderExist data (on isFolderExist): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('folder exist in server. ' );
+        }else{
+            console.log('folder not exist in server. ' );
+        }
+    },
+);
+
+this.smbClient.isFolderExist(
+    'path/of/folder',//the path to list files and folders
+    (data) => {//callback
+        console.log('isFolderExist data (callback): ' + JSON.stringify(data));
+        if(data.isExist){
+            console.log('folder exist in server. ' );
+        }else{
+            console.log('folder not exist in server. ' );
+        }
+    },
+);
+
+```
+
+
+list files and folders in given path of smb server for created smbClient
+```javascript
+this.smbClient.on(
+    'list',
+    (data) => {
+        console.log('list data (on list): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.list(
+    'target/path/to/list',//the path to list files and folders
+    (data) => {//callback
+        console.log('list data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to download a file from smb server for created smbClient & cancel it
+```javascript
+this.smbClient.on(
+    'downloadProgress',
+    (data) => {
+        console.log('download progress data (on downloadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelDownload(data.downloadId);
+    },
+);
+
+this.smbClient.on(
+    'download',
+    (data) => {
+        console.log('download data (on download): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.download(
+    'from/path',//source path of file to download (in SMB server)
+    'to/path',//destination path to save downloaded file (in Android device)
+    'file.name',//the name of file to download
+    (data) => {//callback
+        console.log('download data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to upload a file from android device local path to a path in SMB server
+```javascript
+this.smbClient.on(
+    'uploadProgress',
+    (data) => {
+        console.log('upload progress data (on uploadProgress): ' + JSON.stringify(data));
+        this.smbClient.cancelUpload(data.uploadId)
+    },
+);
+
+this.smbClient.on(
+    'upload',
+    (data) => {
+        console.log('upload data (on upload): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.upload(
+    'from/path',//source path of file to upload (in Android devic)
+    'to/path',//destination path to to upload (in SMB server)
+    'file.name',//the name of file to upload
+    (data) => {//callback
+        console.log('upload data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to rename a file at a path in SMB server
+```javascript
+this.smbClient.on(
+    'renameFile',
+    (data) => {
+        console.log('rename file data (on renameFile): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.renameFile(
+    'path/of/file', //a path of file to rename in SMB server
+    'old.name', //old file name
+    'new.name', //new file name
+    false, //replace if exist
+    (data) => {//callback
+        console.log('rename file data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+
+to rename a folder at a path in SMB server
+```javascript
+this.smbClient.on(
+    'renameFolder',
+    (data) => {
+        console.log('rename folder data (on renameFolder): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.renameFolder(
+    'path/of/file', //a path of file to rename in SMB server
+    'old.name', //old file name
+    'new.name', //new file name
+    false, //replace if exist
+    (data) => {//callback
+        console.log('rename folder data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+
+to move a file at the SMB server side
+```javascript 
+this.smbClient.on( 
+    'fileMoveTo', 
+    (data) => { 
+        console.log('fileMoveTo data (on fileMoveTo): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.fileMoveTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    false, //replace if exist
+    (data) => {//callback
+        console.log('fileMoveTo data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+``` 
+
+to move a folder at the SMB server side
+```javascript 
+this.smbClient.on( 
+    'folderMoveTo', 
+    (data) => { 
+        console.log('folderMoveTo data (on folderMoveTo): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.folderMoveTo(
+    'from/path', //source path of file to move (in SMB server)
+    'to/path', //destination path to to move (in SMB server)
+    'file.name', //the name of file to move
+    false, //replace if exist
+    (data) => {//callback
+        console.log('folderMoveTo data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+``` 
+
+to copy a file at the SMB server side
+```javascript
+this.smbClient.on(
+    'fileCopyTo',
+    (data) => {
+        console.log('fileCopyTo data (on fileCopyTo): ' + JSON.stringify(data));
+    }, 
+); 
+
+this.smbClient.fileCopyTo(
+    'from/path', //source path of file to move (in SMB server) 
+    'to/path', //destination path to to move (in SMB server) 
+    'file.name', //the name of file to move 
+    false, //replace if exist 
+    (data) => {//callback 
+        console.log('fileCopyTo data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to make a directory at the SMB server side
+```javascript
+this.smbClient.on(
+    'makeDir',
+    (data) => {
+        console.log('makeDir data (on makeDir): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.makeDir(
+    'path/to/make/folder', //path of new directory in smb server
+    'folderName', //the name of folder to create 
+    (data) => {//callback
+        console.log('makeDir data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to delete a file at the SMB server side
+```javascript
+this.smbClient.on(
+    'deleteFile',
+    (data) => {
+        console.log('deleteFile data (on deleteFile): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.deleteFile(
+    'path/to/delete/a/file', //path of a file or directory in smb server to delete
+    'file.name', //the name of file to delete 
+    (data) => {//callback
+        console.log('deleteFile data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+
+to delete a folder at the SMB server side
+```javascript
+this.smbClient.on(
+    'deleteFolder',
+    (data) => {
+        console.log('deleteFolder data (on deleteFolder): ' + JSON.stringify(data));
+    },
+);
+
+this.smbClient.deleteFolder(
+    'path/to/delete/a/folder', //path of a file or directory in smb server to delete
+    'folderName', //the name of folder to delete 
+    true, //recursive (delete folder and all its subfolders & subfiles)
+    (data) => {//callback
+        console.log('deleteFolder data (callback): ' + JSON.stringify(data));
+    },
+);
+```
+to disconnect a client from server
+```javascript 
+this.smbClient.on( 
+    'disconnect',
+    (data) => { 
+        console.log('disconnect data (on disconnect): ' + JSON.stringify(data));
+        this.smbClient = null
+    }, 
+); 
+ 
+this.smbClient.disconnect(
+    (data) => {//callback 
+        console.log('disconnect data (callback): ' + JSON.stringify(data));
+    }, 
+); 
+````
+</details>
+
 
