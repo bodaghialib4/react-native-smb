@@ -75,9 +75,15 @@ class SMBClient {
     }
 
     //smbIsConnection
-    isConnected(callback) {
+    connectionStatus(callback) {
         //test connection
-        return RNSmb.isConnected(this.clientId);
+        RNSmb.connectionStatus(this.clientId, (data) => {
+            //console.log('connectionStatus data: ' + JSON.stringify(data));
+            if (callback && typeof callback === "function") {
+                callback(data);
+            }
+            this._handleEvent(data);
+        });
     }
 
     //smbIsFileExist

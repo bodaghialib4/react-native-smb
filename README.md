@@ -329,12 +329,21 @@ this.smbClient.on(
 
 check is connected to server
 ```javascript
-let isConnected = this.smbClient.isConnected();
-if(isConnected){
-    console.log('SMBClient is connected. ' );
-}else{
-    console.log('SMBClient is disconnected. ' );
-}
+
+this.smbClient.on(
+    'connectionStatus',
+    (data) => {
+        console.log('connectionStatus data (on connectionStatus): ' + JSON.stringify(data));
+        console.log('connectionStatus is: ' +  data.status); //connect or disconnect
+    },
+);
+
+this.smbClient.connectionStatus(
+    (data) => {//callback
+        console.log('connectionStatus data (callback): ' + JSON.stringify(data));
+        console.log('connectionStatus is: ' +  data.status); //connect or disconnect
+    },
+);
 ```
 
 

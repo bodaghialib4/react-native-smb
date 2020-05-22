@@ -1418,13 +1418,55 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     });
   }
 
-  @ReactMethod
+
   public boolean isConnected(
           final String clientId
   ) {
+
     Connection connection = connectionPool.get(clientId);
-    if(connection != null && connection.isConnected()) return true;
-    else return false;
+    boolean isConnected = false;
+    if(connection != null && connection.isConnected()) isConnected = true;
+
+    return isConnected;
+  }
+
+  @ReactMethod
+  public void connectionStatus(
+          final String clientId,
+          final Callback callback
+  ) {
+
+    WritableMap params = Arguments.createMap();
+    params.putString("name", "connectionStatus");
+    params.putString("clientId", clientId);
+
+    try {
+      Connection connection = connectionPool.get(clientId);
+      boolean isConnected = false;
+      if (connection != null && connection.isConnected()) isConnected = true;
+
+
+      if (!isConnected) {
+        params.putString("status", "disconnected");
+        params.putString("message", "connection disconnected!!! ");
+      } else {
+        params.putString("status", "connected");
+        params.putString("message", "connection is connected!!! ");
+
+      }
+
+      params.putBoolean("success", true);
+      params.putString("errorCode", "0000");
+
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      params.putBoolean("success", false);
+      params.putString("errorCode", "0101");
+      params.putString("message", "exception error: " + e.getMessage());
+    }
+
+    callback.invoke(params);
   }
 
   @ReactMethod
