@@ -86,6 +86,18 @@ class SMBClient {
         });
     }
 
+    //check item type (file or folder)
+    checkItemType(itemParentPath, itemName, callback) {
+        console.log("checkItemType called with itemParentPath: " + itemParentPath +"   and itemName: " + itemName)
+        RNSmb.checkItemType(this.clientId, itemParentPath, itemName, (data) => {
+            //console.log('isFileExist data: ' + JSON.stringify(data));
+            if (callback && typeof callback === "function") {
+                callback(data);
+            }
+            this._handleEvent(data);
+        });
+    }
+
     //smbIsFileExist
     isFileExist(filePath, callback) {
         RNSmb.isFileExist(this.clientId, filePath, (data) => {

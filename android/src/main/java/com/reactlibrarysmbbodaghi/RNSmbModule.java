@@ -1470,6 +1470,77 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void checkItemType(
+          final String clientId,
+          final String itemParentPath,
+          final String itemName,
+          final Callback callback
+  ) {
+
+    WritableMap params = Arguments.createMap();
+    params.putString("name", "checkItemType");
+    params.putString("clientId", clientId);
+    params.putString("itemParentPath", itemParentPath);
+    params.putString("itemName", itemName);
+
+    try {
+      DiskShare share = diskSharePool.get(clientId);
+      boolean isFileExist = false;
+      String parentPath = "";
+      parentPath = itemParentPath.replace("/","\\");
+      if(!parentPath.endsWith("\\"))parentPath = parentPath + "\\";
+      if(parentPath == "\\") parentPath =  "";
+      String itemPath = parentPath + itemName;
+      if(!isConnected(clientId)){
+        params.putBoolean("success", false);
+        params.putString("errorCode", "1010");
+        params.putString("message", "connection disconnected!!! ");
+        callback.invoke(params);
+        return;
+      }
+      // List<FileIdBothDirectoryInformation> f = share.list("" + itemParentPath, "*");
+      // FileIdBothDirectoryInformation itemInfo = f.get(0);
+
+      FileIdBothDirectoryInformation itemInfo = null;
+
+      for (FileIdBothDirectoryInformation f : share.list(""+itemParentPath, "*")) {
+        if(f.getFileName().equals(itemName)) itemInfo = f;
+//        System.out.println("if condition1: " + f.getFileName().equals(itemName));
+//        System.out.println("if condition2: " + f.getFileName() == itemName);
+//        System.out.println("itemName : " + itemName);
+//        System.out.println("f.getFileName() : " + f.getFileName());
+      }
+
+      if(itemInfo == null){
+        params.putBoolean("success", false);
+        params.putString("errorCode", "1010");
+        params.putString("message", "item not exist!!! ");
+        callback.invoke(params);
+        return;
+      }else {
+
+
+        Boolean isDirectory = EnumWithValue.EnumUtils.isSet(itemInfo.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+        if (isDirectory) {
+          params.putString("itemType", "folder");
+        } else {
+          params.putString("itemType", "file");
+        }
+        params.putBoolean("success", true);
+        params.putString("errorCode", "0000");
+        params.putString("message", "item type extracted!!! ");
+      }
+    } catch (Exception e) {
+      // Output the stack trace.
+      e.printStackTrace();
+      params.putBoolean("success", false);
+      params.putString("errorCode", "0101");
+      params.putString("message", "exception error: " + e.getMessage());
+    }
+    callback.invoke(params);
+  }
+
+  @ReactMethod
   public void isFileExist(
           final String clientId,
           final String filePath,
@@ -1594,7 +1665,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
           WritableArray list = Arguments.createArray();
           for (FileIdBothDirectoryInformation f : share.list("" + destinationPath, "*")) {
-            System.out.println("File : " + f.getFileName());
+            //System.out.println("File : " + f.getFileName());
 
             WritableMap currentFile = Arguments.createMap();
             currentFile.putString("name", f.getFileName());
