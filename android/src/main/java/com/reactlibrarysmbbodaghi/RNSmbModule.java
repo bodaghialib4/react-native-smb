@@ -1763,39 +1763,27 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         boolean isDownloadInitialized = false;
         try {
           if (checkWriteExternalStoragePermissions()) {
-            String destinationPath = "";
-            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-              destinationPath = fromPath;
-              if(!destinationPath.endsWith("/"))destinationPath = destinationPath + "/";
-            }
-            if (fileName != null && !TextUtils.isEmpty(fileName)) {
-              destinationPath = destinationPath + fileName;
-            }
+            String sourceFilePath = concatSMBPathWithName(fromPath,fileName);
 
-            if (!share.fileExists(destinationPath)) {
+            if (!share.fileExists(sourceFilePath)) {
               statusParams.putBoolean("success", false);
               statusParams.putString("errorCode", "1111");
-              statusParams.putString("message", "File [" + destinationPath + "] is not exist!!");
+              statusParams.putString("message", "File [" + sourceFilePath + "] is not exist!!");
               callback.invoke(statusParams);
               return;
             }
 
-            srcFile = share.openFile(destinationPath,
+            srcFile = share.openFile(sourceFilePath,
                     EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL,
                     SMB2CreateDisposition.FILE_OPEN, null);
             srcFileInfo = share.list(fromPath,fileName).get(0);
 
             //source file initialized successfully, now initializing destination file
 
-            String basePath;
-            if (toPath == null || TextUtils.isEmpty(toPath)) {
-              basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-            } else {
-              basePath = toPath;
-            }
+            String destinationFilePath = concatDevicePathWithName(toPath, fileName);
 
             //File destFile;
-            destFile = new File(basePath + File.separator + fileName);
+            destFile = new File(destinationFilePath);
 
             //destination file initialized successfully
 
@@ -1958,6 +1946,13 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           callback.invoke(statusParams);
           return;
         }
+        if (fileName == null || TextUtils.isEmpty(fileName)) {
+          statusParams.putBoolean("success", false);
+          statusParams.putString("errorCode", "1010");
+          statusParams.putString("message", "fileName could not be empty!!! ");
+          callback.invoke(statusParams);
+          return;
+        }
 
         DiskShare share = diskSharePool.get(clientId); //smbShare
         com.hierynomus.smbj.share.File destFile = null;
@@ -1968,45 +1963,34 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
 
         try {
           if (checkReadExternalStoragePermissions()) {
-            String basePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-            String sourcePathWithSeparator = "";
-            if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-              sourcePathWithSeparator = fromPath + File.separator;
-            }
-            srcFile = new File(basePath + File.separator + sourcePathWithSeparator + fileName);
+            String sourceFilePath = concatDevicePathWithName(fromPath,fileName);
+            srcFile = new File(sourceFilePath);
 
             if (srcFile.isDirectory()) {
               statusParams.putBoolean("success", false);
               statusParams.putString("errorCode", "1111");
-              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is a directory!!");
+              statusParams.putString("message", "[" + sourceFilePath + "] is a directory!!");
               callback.invoke(statusParams);
               return;
             }
             if (!srcFile.exists()) {
               statusParams.putBoolean("success", false);
               statusParams.putString("errorCode", "1111");
-              statusParams.putString("message", "[" + sourcePathWithSeparator + fileName + "] is not exist!!");
+              statusParams.putString("message", "[" + sourceFilePath + "] is not exist!!");
               callback.invoke(statusParams);
               return;
             }
             if (!srcFile.canRead()) {
               statusParams.putBoolean("success", false);
               statusParams.putString("errorCode", "1111");
-              statusParams.putString("message", " no permission  to read [" + sourcePathWithSeparator + fileName + "]!!");
+              statusParams.putString("message", " no permission to read [" + sourceFilePath + "]!!");
               callback.invoke(statusParams);
               return;
             }
             //source file initialized successfully, now initializing destination file
 
-            String destinationParentPath = "";
-
-            if (toPath != null && !TextUtils.isEmpty(toPath)) {
-              destinationParentPath = toPath.replace("/","\\");
-              if(!destinationParentPath.endsWith("\\"))destinationParentPath = destinationParentPath + "\\";
-            }
-            if (fileName != null && !TextUtils.isEmpty(fileName)) {
-              destinationFilePath = destinationParentPath + fileName;
-            }
+            String destinationParentPath = concatSMBPathWithName(toPath,"");
+            destinationFilePath = concatSMBPathWithName(toPath,fileName);
 
             if(!share.folderExists(destinationParentPath)) {
               String[] separatedPath = destinationParentPath.split("\\\\");
@@ -2189,20 +2173,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String targetPath = "";
-          String oldFilePATH = oldFileName;
-          String newFilePATH = newFileName;
-          if (path != null && !TextUtils.isEmpty(path)) {
-            targetPath = path.replace("/","\\");
-            if(!targetPath.endsWith("\\"))targetPath = targetPath + "\\";
-
-          }
-          if (oldFileName != null && !TextUtils.isEmpty(oldFileName)) {
-            oldFilePATH = targetPath + oldFileName;
-          }
-          if (newFileName != null && !TextUtils.isEmpty(newFileName)) {
-            newFilePATH = targetPath + newFileName;
-          }
+          String oldFilePATH = concatSMBPathWithName(path, oldFileName);
+          String newFilePATH = concatSMBPathWithName(path, newFileName);
 
           if(!share.fileExists(oldFilePATH)) {
             statusParams.putBoolean("success", false);
@@ -2275,20 +2247,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String targetPath = "";
-          String oldFolderPATH = oldFolderName;
-          String newFolderPATH = newFolderName;
-          if (path != null && !TextUtils.isEmpty(path)) {
-            targetPath = path.replace("/","\\");
-            if(!targetPath.endsWith("\\"))targetPath = targetPath + "\\";
-
-          }
-          if (oldFolderName != null && !TextUtils.isEmpty(oldFolderName)) {
-            oldFolderPATH = targetPath + oldFolderName;
-          }
-          if (newFolderName != null && !TextUtils.isEmpty(newFolderName)) {
-            newFolderPATH = targetPath + newFolderName;
-          }
+          String oldFolderPATH = concatSMBPathWithName(path, oldFolderName);
+          String newFolderPATH = concatSMBPathWithName(path, newFolderName);
 
           if(!share.folderExists(oldFolderPATH)) {
             statusParams.putBoolean("success", false);
@@ -2360,23 +2320,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          //String targetPath = "";
-          String oldFilePATH = "";
-          String newFilePATH = "";
-          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-            oldFilePATH = fromPath.replace("/","\\");
-            if(!oldFilePATH.endsWith("\\"))oldFilePATH = oldFilePATH + "\\";
+          String oldFilePATH = concatSMBPathWithName(fromPath, fileName);
+          String newFilePATH = concatSMBPathWithName(toPath, fileName);
 
-          }
-          if (toPath != null && !TextUtils.isEmpty(toPath)) {
-            newFilePATH = toPath.replace("/","\\");
-            if(!newFilePATH.endsWith("\\"))newFilePATH = newFilePATH + "\\";
-          }
-
-          if (fileName != null && !TextUtils.isEmpty(fileName)) {
-            oldFilePATH = oldFilePATH + fileName;
-            newFilePATH = newFilePATH + fileName;
-          }
           if(!share.fileExists(oldFilePATH)) {
             statusParams.putBoolean("success", false);
             statusParams.putString("errorCode", "1111");
@@ -2424,7 +2370,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
           final String clientId,
           @Nullable final String fromPath,
           @Nullable final String toPath,
-          final String fileName,
+          final String folderName,
           final Boolean replaceIfExist,
           final Callback callback
   ) {
@@ -2436,7 +2382,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         statusParams.putString("clientId", clientId);
         statusParams.putString("fromPath", fromPath + "");
         statusParams.putString("toPath", toPath + "");
-        statusParams.putString("fileName", fileName + "");
+        statusParams.putString("folderName", folderName + "");
 
         DiskShare share = diskSharePool.get(clientId); //smbShare
         if(share == null){
@@ -2448,21 +2394,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          //String targetPath = "";
-          String oldFolderPATH = "";
-          String newFolderPATH = "";
-          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-            oldFolderPATH = fromPath.replace("/","\\");
-            if(!oldFolderPATH.endsWith("\\"))oldFolderPATH = oldFolderPATH + "\\";
-          }
-          if (toPath != null && !TextUtils.isEmpty(toPath)) {
-            newFolderPATH = toPath.replace("/","\\");
-            if(!newFolderPATH.endsWith("\\"))newFolderPATH = newFolderPATH + "\\";
-          }
-          if (fileName != null && !TextUtils.isEmpty(fileName)) {
-            oldFolderPATH = oldFolderPATH + fileName;
-            newFolderPATH = newFolderPATH + fileName;
-          }
+          String oldFolderPATH = concatSMBPathWithName(fromPath, folderName);
+          String newFolderPATH = concatSMBPathWithName(toPath, folderName);;
 
           if(!share.folderExists(oldFolderPATH)) {
             statusParams.putBoolean("success", false);
@@ -2536,22 +2469,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String fromFilePATH = "";
-          String toFilePATH = "";
-          if (fromPath != null && !TextUtils.isEmpty(fromPath)) {
-            fromFilePATH = fromPath.replace("/","\\");
-            if(!fromFilePATH.endsWith("\\"))fromFilePATH = fromFilePATH + "\\";
-
-          }
-          if (toPath != null && !TextUtils.isEmpty(toPath)) {
-            toFilePATH = toPath.replace("/","\\");
-            if(!toFilePATH.endsWith("\\"))toFilePATH = toFilePATH + "\\";
-          }
-
-          if (fileName != null && !TextUtils.isEmpty(fileName)) {
-            fromFilePATH = fromFilePATH + fileName;
-            toFilePATH = toFilePATH + fileName;
-          }
+          String fromFilePATH = concatSMBPathWithName(fromPath, fileName);;
+          String toFilePATH = concatSMBPathWithName(toPath, fileName);;
 
           if(!share.fileExists(fromFilePATH)) {
             statusParams.putBoolean("success", false);
@@ -2635,16 +2554,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String folderPATH = "";
-          if (path != null && !TextUtils.isEmpty(path)) {
-            folderPATH = path.replace("/","\\");
-            if(!folderPATH.endsWith("\\"))folderPATH = folderPATH + "\\";
-
-          }
-
-          if (folderName != null && !TextUtils.isEmpty(folderName)) {
-            folderPATH = folderPATH + folderName;
-          }
+          String folderPATH = concatSMBPathWithName(path, folderName);;
 
           if(share.folderExists(folderPATH)) {
             statusParams.putBoolean("success", false);
@@ -2699,16 +2609,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String filePATH = "";
-          if (path != null && !TextUtils.isEmpty(path)) {
-            filePATH = path.replace("/","\\");
-            if(!filePATH.endsWith("\\"))filePATH = filePATH + "\\";
-
-          }
-
-          if (fileName != null && !TextUtils.isEmpty(fileName)) {
-            filePATH = filePATH + fileName;
-          }
+          String filePATH = concatSMBPathWithName(path, fileName);
           if(!share.fileExists(filePATH)) {
             statusParams.putBoolean("success", false);
             statusParams.putString("errorCode", "1111");
@@ -2761,15 +2662,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
         }
 
         try {
-          String folderPATH = "";
-          if (path != null && !TextUtils.isEmpty(path)) {
-            folderPATH = path.replace("/","\\");
-            if(!folderPATH.endsWith("\\"))folderPATH = folderPATH + "\\";
-          }
-
-          if (folderName != null && !TextUtils.isEmpty(folderName)) {
-            folderPATH = folderPATH + folderName;
-          }
+          String folderPATH = concatSMBPathWithName(path, folderName);;
 
           if(!share.folderExists(folderPATH)) {
             statusParams.putBoolean("success", false);
