@@ -1430,6 +1430,33 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
     return isConnected;
   }
 
+  public String concatSMBPathWithName(String path, String name) {
+    String reformedPath = "";
+    if (path != null && !TextUtils.isEmpty(path))
+      reformedPath = path.replace("/", "\\");
+    if (!reformedPath.endsWith("\\")) reformedPath = reformedPath + "\\";
+    if (TextUtils.equals(reformedPath, "\\")) reformedPath = "";
+    String reformedName = "";
+    if (name != null && !TextUtils.isEmpty(name))
+      reformedName = name.replace("/", "\\");
+    if (reformedName.startsWith("\\"))
+      reformedName = reformedName.substring("\\".length());
+    String combinedPath = "" + reformedPath + reformedName;
+    return combinedPath;
+  }
+
+  public String concatDevicePathWithName(String path, String name) {
+    String reformedPath = "";
+    if (path != null && !TextUtils.isEmpty(path)) reformedPath = path;
+    if (!reformedPath.endsWith(File.separator)) reformedPath = reformedPath + File.separator;
+    String reformedName = "";
+    if (name != null && !TextUtils.isEmpty(name)) reformedName = name;
+    if (reformedName.startsWith("/"))
+      reformedName = reformedName.substring("/".length());
+    String combinedPath = "" + reformedPath + reformedName;
+    return combinedPath;
+  }
+
   @ReactMethod
   public void connectionStatus(
           final String clientId,
