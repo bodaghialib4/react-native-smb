@@ -346,6 +346,23 @@ this.smbClient.connectionStatus(
 );
 ```
 
+check item type (file or folder)
+```javascript
+this.smbClient.on(
+    'checkItemType',
+    (data) => {
+        console.log('checkItemType data (on checkItemType): ' + JSON.stringify(data));
+        console.log('itemType is: ' +  data.itemType); //connect or disconnect
+    },
+);
+
+this.smbClient.checkItemType(
+    (data) => {//callback
+        console.log('checkItemType data (callback): ' + JSON.stringify(data));
+        console.log('itemType is: ' +  data.itemType); //connect or disconnect
+    },
+);
+```
 
 check file exist on server
 ```javascript
@@ -631,6 +648,7 @@ this.smbClient.deleteFolder(
     },
 );
 ```
+
 to disconnect a client from server
 ```javascript 
 this.smbClient.on( 
@@ -647,6 +665,7 @@ this.smbClient.disconnect(
     }, 
 ); 
 ````
+
 </details>
 
 
