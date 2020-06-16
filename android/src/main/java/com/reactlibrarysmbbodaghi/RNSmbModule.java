@@ -1869,7 +1869,10 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               }
             }
             inBuf.close();
+            out.flush();
             out.close();
+            srcFile.flush();
+            srcFile.close();
 
             if (downloadStatus == "cancel") {
               destFile.delete();
@@ -2094,6 +2097,8 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             inBuf.close();
             smbFileOutputStream.flush();
             smbFileOutputStream.close();
+            destFile.flush();
+            destFile.close();
 
             if (uploadStatus == "cancel") {
               share.rm(destinationFilePath);
@@ -2200,6 +2205,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
                   null);
 
           renameFile.rename(newFilePATH, replaceIfExist);
+          renameFile.flush();
           renameFile.close();
 
           statusParams.putBoolean("success", true);
@@ -2347,6 +2353,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
                   null);
 
           renameFile.rename(newFilePATH, replaceIfExist);
+          renameFile.flush();
           renameFile.close();
 
           statusParams.putBoolean("success", true);
@@ -2507,7 +2514,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
                   null);
 
           fileFrom.remoteCopyTo(fileTo);
+          fileFrom.flush();
           fileFrom.close();
+          fileTo.flush();
           fileTo.close();
 
           statusParams.putBoolean("success", true);
