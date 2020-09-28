@@ -1871,7 +1871,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             inBuf.close();
             out.flush();
             out.close();
-            srcFile.flush();
+            //srcFile.flush();
             srcFile.close();
 
             if (downloadStatus == "cancel") {
