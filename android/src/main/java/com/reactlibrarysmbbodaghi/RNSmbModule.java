@@ -2057,6 +2057,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             int len;
             long totalSize = srcFile.length();
             long uploadedSize = 0;
+            long previousUploadedSize = 0;
+            long eventTime = 0;
+            long previousEventTime=0;
 
             List<String> uploadIds = clientUploadsPool.remove(clientId);
             if (uploadIds == null || uploadIds.isEmpty()) uploadIds = new ArrayList<String>();
@@ -2101,7 +2104,16 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               params.putString("destPath", "" + share.getSmbPath() + '\\' + destinationFilePath);
               params.putString("totalSize", totalSize + "");
               params.putString("uploadedSize", uploadedSize + "");
-              sendEvent(reactContext, "SMBUploadProgress", params);
+
+              eventTime = new Date().getTime();
+              long downloadedFromPreviousEvent = uploadedSize - previousUploadedSize;
+              double progressFromPreviousEvent = ((double)downloadedFromPreviousEvent/totalSize) *100;
+              long timeFromPreviousEventMilli = eventTime - previousEventTime;
+              if (!TextUtils.equals(status, "downloading") || (progressFromPreviousEvent > 0.5 && timeFromPreviousEventMilli > 200)) {
+                previousUploadedSize = uploadedSize;
+                previousEventTime = eventTime;
+                sendEvent(reactContext, "SMBUploadProgress", params);
+              }
 
               if (uploadStatus == "cancel") {
                 break;
