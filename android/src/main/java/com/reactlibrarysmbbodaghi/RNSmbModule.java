@@ -29,6 +29,7 @@ import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.widget.Toast;
 import android.text.TextUtils;
 
@@ -1846,7 +1847,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               if (isCompleted) {
                 message = "download completed successfully.";
                 status = "completed";
-              } else if (downloadStatus == "cancel") {
+              } else if (TextUtils.equals(downloadStatus, "cancel")) {
                 message = "download canceled";
                 status = "canceled";
               }
@@ -1878,7 +1879,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
                 sendEvent(reactContext, "SMBDownloadProgress", params);
               }
 
-              if (downloadStatus == "cancel") {
+              if (TextUtils.equals(downloadStatus, "cancel")) {
                 break;
               }
             }
@@ -1888,7 +1889,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             //srcFile.flush();
             srcFile.close();
 
-            if (downloadStatus == "cancel") {
+            if (TextUtils.equals(downloadStatus, "cancel")) {
               destFile.delete();
             }
 
@@ -2084,7 +2085,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               if (isCompleted) {
                 message = "upload completed successfully.";
                 status = "completed";
-              } else if (uploadStatus == "cancel") {
+              } else if (TextUtils.equals(uploadStatus, "cancel")) {
                 message = "upload canceled";
                 status = "canceled";
               }
@@ -2116,7 +2117,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
                 sendEvent(reactContext, "SMBUploadProgress", params);
               }
 
-              if (uploadStatus == "cancel") {
+              if (TextUtils.equals(uploadStatus, "cancel")) {
                 break;
               }
             }
@@ -2126,7 +2127,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             destFile.flush();
             destFile.close();
 
-            if (uploadStatus == "cancel") {
+            if (TextUtils.equals(uploadStatus, "cancel")) {
               share.rm(destinationFilePath);
               //destFile.delete();
             }
