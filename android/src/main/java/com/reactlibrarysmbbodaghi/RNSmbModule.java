@@ -1437,6 +1437,7 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
       reformedPath = path.replace("/", "\\");
     if (!reformedPath.endsWith("\\")) reformedPath = reformedPath + "\\";
     if (TextUtils.equals(reformedPath, "\\")) reformedPath = "";
+    if (reformedPath.startsWith("\\")) reformedPath = reformedPath.substring(1);
     String reformedName = "";
     if (name != null && !TextUtils.isEmpty(name))
       reformedName = name.replace("/", "\\");
