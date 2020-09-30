@@ -44,6 +44,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -1818,6 +1819,9 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
             int len;
             long totalSize = srcFileInfo.getEndOfFile();
             long downloadedSize = 0;
+            long previousDownloadedSize = 0;
+            long eventTime = 0;
+            long previousEventTime=0;
 
             List<String> downloadIds = clientDownloadsPool.remove(clientId);
             if (downloadIds == null || downloadIds.isEmpty()) downloadIds = new ArrayList<String>();
@@ -1862,7 +1866,16 @@ public class RNSmbModule extends ReactContextBaseJavaModule {
               params.putString("destPath", "" + destFile.getAbsolutePath());
               params.putString("totalSize", totalSize + "");
               params.putString("downloadedSize", downloadedSize + "");
-              sendEvent(reactContext, "SMBDownloadProgress", params);
+
+              eventTime = new Date().getTime();
+              long downloadedFromPreviousEvent = downloadedSize - previousDownloadedSize;
+              double progressFromPreviousEvent = ((double)downloadedFromPreviousEvent/totalSize) *100;
+              long timeFromPreviousEventMilli = eventTime - previousEventTime;
+              if (!TextUtils.equals(status, "downloading") || (progressFromPreviousEvent > 0.5 && timeFromPreviousEventMilli > 200)) {
+                previousDownloadedSize = downloadedSize;
+                previousEventTime = eventTime;
+                sendEvent(reactContext, "SMBDownloadProgress", params);
+              }
 
               if (downloadStatus == "cancel") {
                 break;
